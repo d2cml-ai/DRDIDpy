@@ -6,9 +6,9 @@ from sklearn.linear_model import LogisticRegression as glm
 from sklearn.linear_model import LinearRegression as lm
 # ---------------- Panel
 
-def reg_did_panel():
+def drdid_panel():
   pass
-def drdid_panel(
+def reg_did_panel(
   y1: ndarray, y0: ndarray, D: ndarray,
   covariates, i_weights, boot = False, inf_function = True):
 
