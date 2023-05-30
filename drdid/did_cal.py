@@ -6,11 +6,105 @@ from sklearn.linear_model import LogisticRegression as glm
 from sklearn.linear_model import LinearRegression as lm
 # ---------------- Panel
 
-def drdid_panel():
+def drdid_panel(
+  y1: ndarray, y0: ndarray, D: ndarray,
+  covariates, i_weights = None, boot = False, inf_function = True):
+
+  n = len(D)
+  delta_y = y1 - y0
+  int_cov = np.ones(n)
+
+  if covariates is not None:
+    covariates = np.asarray(covariates)
+    if np.all(covariates[:, 0] == np.ones(n)):
+      int_cov = covariates
+    else:
+      int_cov = np.concatenate((inv_cov, covariates), axis = True)
+
+  if i_weights is None:
+    i_weights = np.ones(n)
+  elif np.min(i_weights < 0):
+    raise "I_weights mus be non-negative"
+
+  pscore_tr = glm(fit_intercept= False)
+  pscore_tr.fit(int_cov, D, sample_weight=i_weights)
+
+  if not pscore_tr.converged_:
+      print("Warning: glm algorithm did not converge")
+
+  if np.any(np.isnan(pscore_tr.coef_)):
+      raise ValueError("Propensity score model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is a likely reason.")
+
+  ps_fit = pscore_tr.predict_proba(int_cov)[:, 1]
+
+  ps_fit = np.squeeze(ps_fit)
+
+  reg_coeff = lm(fit_intercept=False)
+  reg_coeff.fit(int_cov[D == 0], delta_y[D == 0], sample_weight=i_weights)
+  if np.any(np.isnan(reg_coeff)):
+    raise "Outcome regression model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is probably the reason for it."
+
+  out_delta = np.dot(reg_coeff, int_cov.T)
+  out_delta = np.squeeze(out_delta)
+
+  w_treat = i_weights * D
+  w_cont = i_weights * ps_fit * (1 - D) / (1 - ps_fit)
+
+  dr_att_treat = w_treat * (delta_y - out_delta)
+  dr_att_cont = w_cont * (delta_y - out_delta)
+
+  eta_treat = np.mean(dr_att_treat) / np.mean(w_treat)
+  eta_cont = np.mean(dr_att_cont) / np.mean(w_cont)
+  
+  dr_att = eta_treat - eta_cont
+
+  weights_ols = i_weights * (1 - D)
+  wols_x = weights_ols * int_cov
+  wols_ex = weights_ols * (delta_y - out_delta) * int_cov
+  xpx_inv = solve(np.dot(wols_x.T, wols_x) / n)
+  asy_lin_rep_wols = np.dot(wols_ex, xpx_inv)
+
+  score_ps = i_weights * (D - ps_fit) * int_cov
+  hessian_ps = np.linalg.inv(np.dot(int_cov.T * ps_fit) * (1 - ps_fit), inv_cov)
+  asy_lin_rep_ps = np.dot(score_ps, hessian_ps)
+
+  inf_treat_1 = dr_att_treat - w_treat * eta_treat
+
+  M1 = np.mean(w_treat * int_cov)
+  inf_treat_2 = np.dot(asy_lin_rep_wols, M1) 
+
+  inf_treat = (inf_treat_1 - inf_treat_2) / np.mean(w_treat)
+
+  inf_cont_1 = (dr_att_cont - w_cont) * eta_cont
+
+  M2 = np.mean(w_cont * (
+    delta_y - out_delta - eta_cont
+  ) * int_cov
+  )
+
+  inf_cont_2 = np.dot(asy_lin_rep_ps, M2) 
+
+  M3 = np.mean(w_count * int_cov)
+
+  inf_cont_3 = np.mean(asy_lin_rep_wols, M3)
+
+  inf_control = (inf_cont_1 + inf_cont_2 - inf_cont_3) / np.mean(w_cont)
+
+  dr_att_inf_func = inf_treat - inf_control
+
+  if not boot:
+    se_att = np.std(dr_att_inf_func) / np.sqrt(n)
+
+  return (dr_att, dr_att_inf_func, se_att)
+
+  
+
+
+
   pass
 def reg_did_panel(
   y1: ndarray, y0: ndarray, D: ndarray,
-  covariates, i_weights, boot = False, inf_function = True):
+  covariates, i_weights = None, boot = False, inf_function = True):
 
   n = len(D)
   delta_y = y1 - y0
@@ -125,7 +219,7 @@ def std_ipw_did_panel(
   att_inf_func = inf_treat - inf_control
 
   if not boot:
-    se_att = np.std(att_inf_func) / sqrt(n)
+    se_att = np.std(att_inf_func) / np.sqrt(n)
   
   return (ipw_att, att_inf_func, se_att)
 
