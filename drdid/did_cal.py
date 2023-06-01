@@ -178,7 +178,9 @@ def std_ipw_did_panel(
     if np.all(covariates[:, 0] == np.ones(n)):
       int_cov = covariates
     else:
-      int_cov = np.concatenate((inv_cov, covariates), axis = True)
+      int_cov = np.concatenate((np.ones((n, 1)), covariates), axis=1)
+  
+
 
   if i_weights is not None:
     i_weights = np.ones(n)
@@ -294,11 +296,48 @@ def std_ipw_did_rc(
   se_att = np.std(att_inf_func) / np.sqrt(n)
 
   return(ipw_att, att_inf_func, se_att)
-  
+
+def reg_did_rc(
+    y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights = None):
+  n = len(D)
+  int_cov = np.ones(n)
+
+  if covariates is not None:
+    if np.all(covariates[:, 0] == int_cov):
+      int_cov = covariates
+    else:
+      int_cov = np.concatenate((np.ones((n, 1)), covariates), axis=1)
+
+  reg_pre = lm(fit_intercept=False)
+  rows_eval = ((D == 0) & (post == 0))
+  reg_pre.fit(int_cov[rows_eval, :], y[rows_eval, :], sample_weight=i_weights)
+  out_y_pre = np.dot(int_cov, reg_pre.params)
+
+  reg_post = lm(fit_intercept=False)
+  rows_eval = ((D == 0) & (post == 1))
+  reg_post.fit(int_cov[rows_eval, :], y[rows_eval, :], sample_weight=i_weights)
+  out_y_post = np.dot(int_cov, reg_post.params)
+
+  w_treat_pre = i_weights * D * (1 - post)
+  w_treat_post = i_weights * D * post
+  w_cont = i_weights * D
+
+  reg_att_treat_pre = w_treat_pre * y
+  reg_att_treat_post = w_treat_post * y
+  reg_att_cont = w_cont * (out_y_post - out_y_pre)
+
+  eta_treat_pre = np.mean(reg_att_treat_pre) / np.mean(w_treat_pre)
+  eta_treat_post = np.mean(reg_att_treat_post) / np.mean(w_treat_post)
+  eta_cont = np.mean(reg_att_cont) / np.mean(w_cont)
+
+  reg_att = (eta_treat_post - eta_treat_pre) - eta_cont
+
+  weights_ols_pre = i_weights * (1 - D) * (1 - post)
+  wols_x_pre = weights_ols_pre * int_cov
+  wols_ex_pre = weights_ols_pre * (y - out_y_pre) * int_cov
+  xpx_inv_pre = np.linalg.solve(np.dot(wolx))
 
 
-  pass
-def reg_did_rc():
   pass
 
 def drdid_rc():
