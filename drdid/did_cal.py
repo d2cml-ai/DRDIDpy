@@ -101,7 +101,6 @@ def drdid_panel(
 
 
 
-  pass
 def reg_did_panel(
   y1: ndarray, y0: ndarray, D: ndarray,
   covariates, i_weights = None, boot = False, inf_function = True):
@@ -340,8 +339,13 @@ def reg_did_rc(
 
   pass
 
-def drdid_rc():
+def drdid_rc(
+  y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights = None):
+  
   pass
+
+
+
 
 
 
