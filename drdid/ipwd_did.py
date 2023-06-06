@@ -1,4 +1,5 @@
 
+
 def std_ipw_did_panel(
   y1: ndarray, y0: ndarray, D: ndarray,
   covariates, i_weights, boot = False, inf_function = True):
