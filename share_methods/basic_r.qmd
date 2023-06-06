@@ -1,0 +1,52 @@
+
+# Drdid
+
+## Simple data - R
+
+```{r}
+library(reticulate)
+xi <- c(
+    2, 9, 8, 0, 6,
+    1, 3, 4, 9, 12
+  ) |> 
+  matrix(nrow = 5) 
+
+(int_cov <- cbind(1, xi))
+(colMeans(int_cov))
+y_lm <- c(1, 9, 2, 1, 7)
+y_glm <- c(0, 1, 1, 0, 1)
+wg <- c(.1, .1, .1, .1, .6)
+```
+
+## Lm R
+
+```{r}
+(lm1 <- lm(y_lm ~ -1 + int_cov, weights = wg))
+(lm_coef <- coef(lm1))
+(out_delta <- tcrossprod(lm_coef, int_cov) |> as.vector())
+
+D <- y_glm
+(weight_ols <- wg * (1 - D) * int_cov)
+
+cr <- crossprod(weight_ols, int_cov) / 5
+cr[1, 2] <- 2
+(cr)
+
+(xpx <- qr.solve(cr))
+```
+
+
+## GLM
+
+```{r}
+n <- 5
+D <- c(0, 1, 1, 1, 0)
+ps <- glm(D ~ -1 + xi, family = "binomial")
+(ps_fit <- as.vector(ps$fitted.values))
+(ps_fit <- pmin(ps_fit, 1 - 1e-16))
+(hessian_ps <- stats::vcov(ps) * n)
+
+(score_ps <- wg * (D - ps_fit) * xi)
+score_ps %*% hessian_ps
+```
+

@@ -1,0 +1,79 @@
+# Drdid
+
+## Simple data - Python 
+
+```{python}
+import numpy as np, pandas as pd
+import statsmodels.api as sm
+
+xi = np.transpose( np.array([
+    [2, 9, 8, 0, 6],
+    [1, 3, 4, 9, 12]
+]))
+
+int_cov = np.column_stack((np.ones(5), xi))
+pd.DataFrame(int_cov)
+print(np.mean(int_cov, axis=0)) ######## colmeans
+
+y_lm = np.array([1, 9, 2, 1, 7])
+y_glm = np.array([0, 1, 1, 0, 1])
+wg = np.array([0.1, 0.1, 0.1, 0.1, 0.6])
+
+```
+
+
+
+
+### lm Python
+
+```{python}
+lm1 = sm.WLS(y_lm, int_cov, weights=wg).fit()
+lm_coef = lm1.params
+print(lm_coef)
+out_delta = np.dot(lm_coef, int_cov.T)
+print(out_delta)
+D = y_glm
+weight_ols = (wg * (1 - D))[:, np.newaxis] * int_cov
+print(weight_ols)
+
+cr = np.dot(weight_ols.T, int_cov) / 5
+cr[0, 1] = 2
+print(cr)
+xpx = np.linalg.pinv(cr)
+print(xpx)
+
+```
+
+## GLM
+
+```{python}
+import numpy as np
+import statsmodels.api as sm
+# import statsmodels.api.sm.GLM as glm
+glm = sm.GLM
+bino_mial = sm.families.Binomial()
+
+n = 5
+D = np.array([0, 1, 1, 1, 0])
+ps = glm(D, xi, family=bino_mial)
+print(ps.fit().summary())
+ps_fit = ps.fit().fittedvalues
+print(ps_fit)
+ps_fit = np.minimum(ps_fit, 1 - 1e-16)
+print(ps_fit)
+hessian_ps = ps.fit().cov_params() * n
+print(hessian_ps)
+score_ps = (wg * (D - ps_fit))[:, np.newaxis] *xi 
+print(score_ps)
+
+```
+
+
+```{python}
+
+result = pd.DataFrame(np.dot(score_ps, hessian_ps))
+
+print(result)
+```
+
+

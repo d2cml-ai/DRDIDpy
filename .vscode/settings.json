@@ -2,5 +2,6 @@
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
   "python.linting.pylintEnabled": true,
-  "python.linting.enabled": false
+  "python.linting.enabled": false,
+  "r.lsp.promptToInstall": false
 }
