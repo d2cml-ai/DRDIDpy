@@ -9,8 +9,7 @@ qr_solver = np.linalg.pinv
 binomial = sm.families.Binomial()
 
 
-def drdid_rc(
-  y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights = None):
+def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights = None):
   
   n = len(D)
   int_cov = np.ones(n)
@@ -27,6 +26,7 @@ def drdid_rc(
   ps_fit = np.minimum(ps_fit, 1 - 1e-16)
 
   row_pre = (D == 0) & (post == 0)
+  print(row_pre)
   reg_cont_coef_pre = lm(y[row_pre], int_cov[row_pre], weights=i_weights[row_pre])\
     .fit().params
   out_y_cont_pre = np.dot(reg_cont_coef_pre, int_cov.T)
@@ -38,12 +38,12 @@ def drdid_rc(
 
   out_y_cont = post * out_y_cont_post + (1 - post) * out_y_cont_pre 
 
-  row_pre_d = (D == 1) * (post == 0)
+  row_pre_d = (D == 1) & (post == 0)
   reg_treat_coef_pre = lm(y[row_pre_d], int_cov[row_pre_d], weights=i_weights[row_pre_d])\
     .fit().params
   out_y_treat_pre = np.dot(reg_treat_coef_pre, int_cov.T)
 
-  row_post_d = (D == 1) * (post == 1)
+  row_post_d = (D == 1) & (post == 1)
   reg_treat_coef_post = lm(y[row_post_d], int_cov[row_post_d], weights=i_weights[row_pre_d])\
     .fit().params
   out_y_treat_post = np.dot(reg_treat_coef_post, int_cov.T)
@@ -195,7 +195,16 @@ def drdid_rc(
 
   return (dr_att, dr_att_inf_func, se_inf)
   
-  pass
+# xi = np.transpose( np.array([
+#     [2, 9, 8, 0, 6, 4],
+#     [1, 3, 4, 9, 12, 2]
+# ]))
+
+# y_lm = np.array([0, 1, 0, 1, 0, 0])
+# y_glm = np.array([0, 1, 1, 0, 1, 0])
+# D = np.array([0, 0, 1, 1, 1, 0])
+
+drdid_rc(y_glm, y_lm, D, xi)
 
 
 def drdid_panel(
