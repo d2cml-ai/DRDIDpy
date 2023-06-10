@@ -12,47 +12,40 @@ binomial = sm.families.Binomial()
 def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights = None):
   
   n = len(D)
+
   int_cov = np.ones(n)
-  if covariates is not None: 
-    cov_ones = np.ones(n)
-    if np.all(covariates[:, 0] == cov_ones):
+  if covariates is not None:
+    if np.all(covariates[:, 0] == int_cov):
       int_cov = covariates
     else:
-      int_cov = np.column_stack((cov_ones, covariates))
-
+      int_cov = np.concatenate((np.ones((n, 1)), covariates), axis=1)
   pscore_tr = glm(D, int_cov, family=binomial, freq_weights=i_weights)\
     .fit()
   ps_fit = pscore_tr.fittedvalues
   ps_fit = np.minimum(ps_fit, 1 - 1e-16)
 
-  row_pre = (D == 0) & (post == 0)
-  print(row_pre)
-  reg_cont_coef_pre = lm(y[row_pre], int_cov[row_pre], weights=i_weights[row_pre])\
-    .fit().params
-  out_y_cont_pre = np.dot(reg_cont_coef_pre, int_cov.T)
+  def reg_out_y(d, p, y = y, int_cov = int_cov, wg = i_weights):
+    rows_ = (D == d) & (post == p)
+    reg_cont = lm(y[rows_], int_cov[rows_], weights=wg[rows_])\
+      .fit().params
+    out_y = np.dot(reg_cont, int_cov.T)
+    return out_y
 
-  row_post = (D == 0) & (post == 1)
-  reg_cont_coef_post = lm(y[row_post], int_cov[row_post], weights=i_weights[row_post])\
-    .fit().params
-  out_y_cont_post = np.dot(reg_cont_coef_post, int_cov.T)
 
+  out_y_cont_pre = reg_out_y(d = 0, p = 0)
+  out_y_cont_post = reg_out_y(d = 0, p = 1)
   out_y_cont = post * out_y_cont_post + (1 - post) * out_y_cont_pre 
 
-  row_pre_d = (D == 1) & (post == 0)
-  reg_treat_coef_pre = lm(y[row_pre_d], int_cov[row_pre_d], weights=i_weights[row_pre_d])\
-    .fit().params
-  out_y_treat_pre = np.dot(reg_treat_coef_pre, int_cov.T)
 
-  row_post_d = (D == 1) & (post == 1)
-  reg_treat_coef_post = lm(y[row_post_d], int_cov[row_post_d], weights=i_weights[row_pre_d])\
-    .fit().params
-  out_y_treat_post = np.dot(reg_treat_coef_post, int_cov.T)
+  out_y_treat_pre = reg_out_y(d = 1, p = 0)
+  out_y_treat_post = reg_out_y(d = 1, p = 1)
 
   w_treat_pre = i_weights * D * (1 - post)
   w_treat_post = i_weights * D * post
   rest_cont = i_weights * ps_fit * (1 - D) 
   w_cont_pre = rest_cont * (1 - post) / (1 - ps_fit)
   w_cont_post = rest_cont * post / (1 - ps_fit)
+
 
   w_d = i_weights * D
   w_dt1 = w_d * post
@@ -86,46 +79,32 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
     (att_cont_post - att_cont_pre) -\
     (att_d_post - att_dt1_post) -\
     (att_d_pre - att_dt0_pre)
+  def asy_lin_wols(d, post, out_y, int_cov = int_cov):
+    weigths_ols = i_weights * d * post
+    # weigths_ols_pre
+    wols_x = weigths_ols[:, n_x] * int_cov
+    wols_ex = (weigths_ols * (y - out_y))[:, n_x] * int_cov
+    cr = np.dot(wols_x.T, int_cov) / n
+    xpx_inv = qr_solver(cr)
+    asy_lin_rep_ols = np.dot(wols_ex, xpx_inv)
+    return asy_lin_rep_ols
 
-  ############# inf_func
-  weigths_ols_pre = i_weights * (1 - D) * (1 - post)
-  wols_x_pre = weigts_ols_pre[:, n_x] * int_cov
-  wols_ex_pre = (weigths_ols_pre * (y - out_y_cont_post))[:, n_x] * int_cov
-  cr = np.dot(wols_ex_pre, int_cov) / n
-  xpx_inv_pre = qr_solver(cr)
-  asy_lin_rep_ols_pre = np.dot(wols_ex_pre, xpx_inv_pre)
+  asy_lin_rep_ols_pre = asy_lin_wols((1 - D), (1 - post), out_y_cont_pre)
+  asy_lin_rep_ols_post = asy_lin_wols((1 - D), post, out_y_cont_post)
 
-
-  weigths_ols_post = i_weights * (1 - D) * post
-  wols_x_post = weigths_ols_post[:, n_x] * int_cov
-  wols_ex_post = (weigths_ols_post * (y - out_y_cont_post))[:, n_x] * int_cov
-  cr = np.dot(wols_x_post, int_cov) / n
-  xpx_inv_post = qr_solver(cr)
-  asy_lin_rep_ols_post = np.dot(wols_ex_post, xpx_inv_post)
-
-  weigths_ols_pre_treat = i_weights * D * (1 - post)
-  wols_x_pre_treat = weigths_ols_pre_treat[:, n_x] * int_cov 
-  wols_ex_pre_treat = (weigths_ols_pre_treat * (y - out_y_treat_pre))[:, n_x] * int_cov
-  cr = np.dot(wols_x_pre_treat, int_cov) / n
-  xpx_inv_pre_treat = qr_solver(cr)
-  asy_lin_rep_ols_pre_treat = np.dot(wols_ex_pre_treat, xpx_inv_pre_treat)
-
-  weigths_ols_post_treat = i_weights * D * post
-  wols_x_post_treat = weigths_ols_post_treat[:, n_x] * int_cov
-  wols_ex_post_treat = (weigths_ols_post_treat * (y - out_y_treat_post))[:, n_x] * int_cov
-  cr = np.dot(wols_x_post_treat, int_cov) / n
-  xpx_inv_post_treat = qr_solver(cr)
-  asy_lin_rep_ols_post_treat = np.dot(wols_ex_post_treat, xpx_inv_post_treat)
-
+  asy_lin_rep_ols_pre_treat = asy_lin_wols(
+    D, (1 - post), out_y_treat_pre
+  )
+  asy_lin_rep_ols_post_treat = asy_lin_wols(D, post, out_y_treat_post)
   score_ps = (i_weights * (D - ps_fit))[:, n_x] * int_cov
   hessian_ps = pscore_tr.cov_params() * n 
   asy_lin_rep_ps = np.dot(score_ps, hessian_ps)
 
   inf_treat_pre = eta_treat_pre - w_treat_pre * att_treat_pre\
-    / w_treat_pre
+    / mean(w_treat_pre)
   inf_treat_post = eta_treat_post - w_treat_post * att_treat_post\
-    / w_treat_post
-  
+    / mean(w_treat_post)
+
   M1_post = np.mean((w_treat_post * post)[:, n_x] * int_cov, axis=0) / np.mean(w_treat_post)
   M1_pre = np.mean((w_treat_pre * (1 - post))[:, n_x] * int_cov, axis=0) / np.mean(w_treat_pre)
 
@@ -139,11 +118,11 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
   inf_cont_post = eta_cont_post - w_cont_post * att_cont_post / np.mean(w_cont_post)
 
   M2_pre = np.mean(
-    (w_cont_pre * (y - out_y_cont - att_cont_pre)[:, n_x] * int_cov), 
+    ((w_cont_pre * (y - out_y_cont - att_cont_pre))[:, n_x] * int_cov), 
     axis=0
   ) / np.mean(w_cont_pre)
   M2_post = np.mean(
-    (w_cont_post * (y - out_y_cont - att_cont_post)[:, n_x] * int_cov),
+    ((w_cont_post * (y - out_y_cont - att_cont_post))[:, n_x] * int_cov),
     axis=0
   ) / np.mean(w_cont_post)
 
@@ -156,8 +135,8 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
     (w_cont_pre * (1 - post))[:, n_x] * int_cov, axis=0
   ) / np.mean(w_cont_pre)
 
-  inf_cont_or_post = np.mean(asy_lin_rep_ols_post, M3_post)
-  inf_cont_or_pre = np.mean(asy_lin_rep_ols_pre, M3_pre)
+  inf_cont_or_post = np.dot(asy_lin_rep_ols_post, M3_post)
+  inf_cont_or_pre = np.dot(asy_lin_rep_ols_pre, M3_pre)
   inf_cont_or = inf_cont_or_post - inf_cont_or_pre
 
   inf_cont = inf_cont_post - inf_cont_pre + inf_cont_ps + inf_cont_or
@@ -175,10 +154,10 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
 
   def mom_f(a, b, int_cov = int_cov):
     left = a / np.mean(a) - b / np.mean(b)
-    np.mean(left[:, n_x] * int_cov, axis=0) 
+    return np.mean(left[:, n_x] * int_cov, axis=0) 
 
   mom_post = mom_f(w_d, w_dt1)
-  mom_pre = mom_f(wd, w_dt0)
+  mom_pre = mom_f(w_d, w_dt0)
 
   inf_or_post = np.dot(
     asy_lin_rep_ols_post_treat - asy_lin_rep_ols_post, 
@@ -191,21 +170,7 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
   inf_or = inf_or_post - inf_or_pre
   dr_att_inf_func = dr_att_inf_func1 + inf_eff + inf_or
 
-  se_inf = np.std(dr_att_inf_func) / np.sqrt(n)
-
-  return (dr_att, dr_att_inf_func, se_inf)
-  
-# xi = np.transpose( np.array([
-#     [2, 9, 8, 0, 6, 4],
-#     [1, 3, 4, 9, 12, 2]
-# ]))
-
-# y_lm = np.array([0, 1, 0, 1, 0, 0])
-# y_glm = np.array([0, 1, 1, 0, 1, 0])
-# D = np.array([0, 0, 1, 1, 1, 0])
-
-drdid_rc(y_glm, y_lm, D, xi)
-
+  return (dr_att, dr_att_inf_func)
 
 def drdid_panel(
   y1: ndarray, y0: ndarray, D: ndarray,
