@@ -6,7 +6,7 @@ lm = sm.WLS
 n_x = np.newaxis
 qr_solver = np.linalg.pinv
 
-def asy_lin_wols(d, post, y, out_y, int_cov = int_cov):
+def asy_lin_wols(d, post, y, out_y, int_cov):
   weigths_ols = i_weights * d * post
   # weigths_ols_pre
   wols_x = weigths_ols[:, n_x] * int_cov
@@ -57,7 +57,7 @@ def reg_did_panel(
   d = 1 - D
   post = 1
 
-  asy_lin_rep_ols = asy_lin_wols(d, post, delta_y, out_delta)
+  asy_lin_rep_ols = asy_lin_wols(d, post, delta_y, out_delta, int_cov)
   inf_treat = (reg_att_treat - w_treat * eta_treat) / np.mean(w_treat)
   inf_cont_1 = (reg_att_cont - w_cont * eta_cont)
 
