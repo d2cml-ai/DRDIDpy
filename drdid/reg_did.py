@@ -6,6 +6,15 @@ lm = sm.WLS
 n_x = np.newaxis
 qr_solver = np.linalg.pinv
 
+def asy_lin_wols(d, post, y, out_y, int_cov = int_cov):
+  weigths_ols = i_weights * d * post
+  # weigths_ols_pre
+  wols_x = weigths_ols[:, n_x] * int_cov
+  wols_ex = (weigths_ols * (y - out_y))[:, n_x] * int_cov
+  cr = np.dot(wols_x.T, int_cov) / n
+  xpx_inv = qr_solver(cr)
+  asy_lin_rep_ols = np.dot(wols_ex, xpx_inv)
+  return asy_lin_rep_ols
 
 def reg_did_panel(
   y1: ndarray, y0: ndarray, D: ndarray,
@@ -16,22 +25,19 @@ def reg_did_panel(
   int_cov = np.ones(n)
 
   if covariates is not None:
-    col_ones = np.ones(n)
-    covariates = np.asarray(covariates)
-    if np.all(covariates[:, 0] == col_ones):
+    if np.all(covariates[:, 0] == int_cov):
       int_cov = covariates
     else:
-      int_cov = np.column_stack((col_ones, covariates))
+      int_cov = np.concatenate((np.ones((n, 1)), covariates), axis=1)
 
   if i_weights is not None:
     i_weights = np.ones(n)
   elif np.min(i_weights < 0):
     raise "I_weights mus be non-negative"
 
-  row_s = D == 0
-  
-  reg_fit = lm(delta_y[row_s], int_cov[row_s], weights=i_weights[row_s]).fit()
-  reg_coef = reg_fit.params
+  rows = D == 0
+  int_cov = covariates
+  reg_coef = lm(delta_y[rows], int_cov[rows], weights=i_weights[rows]).fit().params
 
   if np.any(np.isnan(reg_coeff)):
     raise "Outcome regression model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is probably the reason for it."
@@ -48,26 +54,20 @@ def reg_did_panel(
 
   reg_att = eta_treat - eta_cont
 
-  weights_ols = i_weights * (1 - D)
-  wols_x = weights_ols[:, n_x] * int_cov
-  wols_ex = (weights_ols * (delta_y - out_delta))[:, n_x] * int_cov
-  cr = np.dot(wols_x.T, int_cov) / n
-  xpx_inv = qr_solver(cr)
-  asy_lin_rep_ols = np.dot(wols_ex, xpx_inv)
+  d = 1 - D
+  post = 1
 
+  asy_lin_rep_ols = asy_lin_wols(d, post, delta_y, out_delta)
   inf_treat = (reg_att_treat - w_treat * eta_treat) / np.mean(w_treat)
-  inf_cont_1 = reg_att_cont - w_cont * eta_cont
+  inf_cont_1 = (reg_att_cont - w_cont * eta_cont)
 
   M1 = np.mean(w_cont[:, n_x] * int_cov, axis = 0)
-
-  inf_cont_2 = np.dot(asy_lin_rep_ols, int_cov) 
+  inf_cont_2 = np.dot(asy_lin_rep_ols, M1)
   inf_control = (inf_cont_1 + inf_cont_2) / np.mean(w_cont)
-  reg_att_inf_func = inf_treat - inf_control
 
-  if not boot:
-    se_reg_att = np.std(reg_att_inf_func) / np.sqrt(n)
+  reg_att_inf_func = inf_treat - inf_control
   
-  return (reg_att, reg_att_inf_func, se_reg_att)
+  return (reg_att, reg_att_inf_func)
 
 
 def reg_did_rc(
