@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='double robust did',
-    version='0.1.14',
+    version='0.1.151',
     description='Descripción de la librería',
     url='https://github.com/d2cml-ai/drdid',
     author='Jhon Flores',
