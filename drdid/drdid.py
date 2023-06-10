@@ -101,9 +101,9 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
   asy_lin_rep_ps = np.dot(score_ps, hessian_ps)
 
   inf_treat_pre = eta_treat_pre - w_treat_pre * att_treat_pre\
-    / mean(w_treat_pre)
+    / np.mean(w_treat_pre)
   inf_treat_post = eta_treat_post - w_treat_post * att_treat_post\
-    / mean(w_treat_post)
+    / np.mean(w_treat_post)
 
   M1_post = np.mean((w_treat_post * post)[:, n_x] * int_cov, axis=0) / np.mean(w_treat_post)
   M1_pre = np.mean((w_treat_pre * (1 - post))[:, n_x] * int_cov, axis=0) / np.mean(w_treat_pre)
