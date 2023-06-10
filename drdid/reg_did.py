@@ -6,7 +6,7 @@ lm = sm.WLS
 n_x = np.newaxis
 qr_solver = np.linalg.pinv
 
-def asy_lin_wols(d, post, y, out_y, int_cov, i_w):
+def asy_lin_wols(d, post, y, out_y, int_cov, i_weights):
   weigths_ols = i_weights * d * post
   # weigths_ols_pre
   wols_x = weigths_ols[:, n_x] * int_cov
