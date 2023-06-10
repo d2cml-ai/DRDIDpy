@@ -37,12 +37,12 @@ def reg_did_panel(
 
   rows = D == 0
   int_cov = covariates
-  reg_coef = lm(delta_y[rows], int_cov[rows], weights=i_weights[rows]).fit().params
+  reg_coeff = lm(delta_y[rows], int_cov[rows], weights=i_weights[rows]).fit().params
 
   if np.any(np.isnan(reg_coeff)):
     raise "Outcome regression model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is probably the reason for it."
 
-  out_delta = np.dot(reg_coef, int_cov.T)
+  out_delta = np.dot(reg_coeff, int_cov.T)
   w_treat = i_weights * D
   w_cont = w_treat.copy()
 
