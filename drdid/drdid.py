@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import ndarray
 import statsmodels.api as sm
+from .utils import *
 
 lm = sm.WLS
 glm = sm.GLM
@@ -21,9 +22,10 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
       int_cov = np.concatenate((np.ones((n, 1)), covariates), axis=1)
   pscore_tr = glm(D, int_cov, family=binomial, freq_weights=i_weights)\
     .fit()
-  ps_fit = pscore_tr.fittedvalues
-  ps_fit = np.minimum(ps_fit, 1 - 1e-16)
 
+  _, w_cont_pre, _,\
+    w_cont_post, _, asy_lin_rep_ps = fit_ps(D, int_cov, i_weights, post)
+  
   def reg_out_y(d, p, y = y, int_cov = int_cov, wg = i_weights):
     rows_ = (D == d) & (post == p)
     reg_cont = lm(y[rows_], int_cov[rows_], weights=wg[rows_])\
@@ -36,16 +38,12 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
   out_y_cont_post = reg_out_y(d = 0, p = 1)
   out_y_cont = post * out_y_cont_post + (1 - post) * out_y_cont_pre 
 
-
   out_y_treat_pre = reg_out_y(d = 1, p = 0)
   out_y_treat_post = reg_out_y(d = 1, p = 1)
 
   w_treat_pre = i_weights * D * (1 - post)
   w_treat_post = i_weights * D * post
   rest_cont = i_weights * ps_fit * (1 - D) 
-  w_cont_pre = rest_cont * (1 - post) / (1 - ps_fit)
-  w_cont_post = rest_cont * post / (1 - ps_fit)
-
 
   w_d = i_weights * D
   w_dt1 = w_d * post
@@ -96,9 +94,7 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
     D, (1 - post), out_y_treat_pre
   )
   asy_lin_rep_ols_post_treat = asy_lin_wols(D, post, out_y_treat_post)
-  score_ps = (i_weights * (D - ps_fit))[:, n_x] * int_cov
-  hessian_ps = pscore_tr.cov_params() * n 
-  asy_lin_rep_ps = np.dot(score_ps, hessian_ps)
+
 
   inf_treat_pre = eta_treat_pre - w_treat_pre * att_treat_pre\
     / np.mean(w_treat_pre)
@@ -178,65 +174,36 @@ def drdid_panel(
 
   n = len(D)
   delta_y = y1 - y0
-  int_cov = np.ones(n)
 
-  if covariates is not None:
-    covariates = np.asarray(covariates)
-    if np.all(covariates[:, 0] == np.ones(n)):
-      int_cov = covariates
-    else:
-      int_cov = np.concatenate((inv_cov, covariates), axis = True)
+  int_cov = has_intercept(covariates, n)
+  i_weights = has_weights(i_weights, n)
 
-  if i_weights is None:
-    i_weights = np.ones(n)
-  elif np.min(i_weights < 0):
-    raise "I_weights mus be non-negative"
+  ref_rows = D == 0
+  w_d = i_weights * D
+  d1 = (1 - D)
 
-  pscore_tr = glm(fit_intercept= False)
-  pscore_tr.fit(int_cov, D, sample_weight=i_weights)
+  out_delta, asy_lin_rep_wols = \
+    out_wols(delta_y, d1, x, ref_rows, i_weights)
 
-  if not pscore_tr.converged_:
-      print("Warning: glm algorithm did not converge")
 
-  if np.any(np.isnan(pscore_tr.coef_)):
-      raise ValueError("Propensity score model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is a likely reason.")
+  _, _, w_cont\
+    , _, _, asy_lin_rep_ps = fit_ps(D, int_cov, i_weights, post)
 
-  ps_fit = pscore_tr.predict_proba(int_cov)[:, 1]
+  w_treat = w_d
+  y_out = delta_y - out_delta
 
-  ps_fit = np.squeeze(ps_fit)
+  dr_att_treat = w_treat * y_out
+  dr_att_cont = w_cont * y_out
 
-  reg_coeff = lm(fit_intercept=False)
-  reg_coeff.fit(int_cov[D == 0], delta_y[D == 0], sample_weight=i_weights)
-  if np.any(np.isnan(reg_coeff)):
-    raise "Outcome regression model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is probably the reason for it."
-
-  out_delta = np.dot(reg_coeff, int_cov.T)
-  out_delta = np.squeeze(out_delta)
-
-  w_treat = i_weights * D
-  w_cont = i_weights * ps_fit * (1 - D) / (1 - ps_fit)
-
-  dr_att_treat = w_treat * (delta_y - out_delta)
-  dr_att_cont = w_cont * (delta_y - out_delta)
-
-  eta_treat = np.mean(dr_att_treat) / np.mean(w_treat)
-  eta_cont = np.mean(dr_att_cont) / np.mean(w_cont)
+  eta_treat = eta_val(dr_att_treat, w_treat)
+  eta_cont  = eta_val(dr_att_cont, w_cont)
   
   dr_att = eta_treat - eta_cont
 
-  weights_ols = i_weights * (1 - D)
-  wols_x = weights_ols * int_cov
-  wols_ex = weights_ols * (delta_y - out_delta) * int_cov
-  xpx_inv = solve(np.dot(wols_x.T, wols_x) / n)
-  asy_lin_rep_wols = np.dot(wols_ex, xpx_inv)
-
-  score_ps = i_weights * (D - ps_fit) * int_cov
-  hessian_ps = np.linalg.inv(np.dot(int_cov.T * ps_fit) * (1 - ps_fit), inv_cov)
-  asy_lin_rep_ps = np.dot(score_ps, hessian_ps)
 
   inf_treat_1 = dr_att_treat - w_treat * eta_treat
 
-  M1 = np.mean(w_treat * int_cov)
+  M1 = np.mean(w_treat[:, n_x] * int_cov, axis=0)
   inf_treat_2 = np.dot(asy_lin_rep_wols, M1) 
 
   inf_treat = (inf_treat_1 - inf_treat_2) / np.mean(w_treat)
