@@ -10,7 +10,7 @@ setup(
     author='Jhon Flores',
     license="MIT",
     author_email='fr.jhonk@gmail.com',
-    packages=find_packages(),
+    packages=['drdid'],
     install_requires=[
         'pandas', 
         'numpy<=1.24.3',
