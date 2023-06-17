@@ -85,6 +85,7 @@ def reg_did_rc(
   eta_treat_pre = np.mean(reg_att_treat_pre) / np.mean(w_treat_pre)
   eta_treat_post = np.mean(reg_att_treat_post) / np.mean(w_treat_post)
   eta_cont = np.mean(reg_att_cont) / np.mean(w_cont)
+  
   reg_att = (eta_treat_post - eta_treat_pre) - eta_cont
 
   inf_treat_pre = (reg_att_treat_pre - w_treat_pre * eta_treat_pre) \

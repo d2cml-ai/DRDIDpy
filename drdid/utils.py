@@ -68,7 +68,7 @@ def bstrap_se():
   # replace with mboot
   pass
 
-def fit_ps(d, x, w, post):
+def fit_ps(d, x, w, post = 1):
   n = len(d)
   glm_fit = glm(
     d, x, family=binomial, freq_weights=w
