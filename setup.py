@@ -1,11 +1,19 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+
+from drdid._version_ import version
 
 setup(
-    name='double robust did',
-    version='0.1.152',
+    name='Double Dobust did',
+    version=version,
     description='Descripción de la librería',
     url='https://github.com/d2cml-ai/drdid',
     author='Jhon Flores',
+    license="MIT",
     author_email='fr.jhonk@gmail.com',
-    packages=['drdid'],
+    packages=find_packages(),
+    install_requires=[
+        'pandas', 
+        'numpy<=1.24.3',
+        'statsmodels'
+    ]
 )
