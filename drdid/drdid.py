@@ -3,12 +3,6 @@ from numpy import ndarray
 import statsmodels.api as sm
 from .utils import *
 
-lm = sm.WLS
-glm = sm.GLM
-n_x = np.newaxis
-qr_solver = np.linalg.pinv
-binomial = sm.families.Binomial()
-
 
 def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights = None):
   
@@ -200,7 +194,6 @@ def drdid_panel(
   
   dr_att = eta_treat - eta_cont
 
-
   inf_treat_1 = dr_att_treat - w_treat * eta_treat
 
   M1 = np.mean(w_treat[:, n_x] * int_cov, axis=0)
@@ -210,14 +203,13 @@ def drdid_panel(
 
   inf_cont_1 = (dr_att_cont - w_cont) * eta_cont
 
-  M2 = np.mean(w_cont * (
-    delta_y - out_delta - eta_cont
-  ) * int_cov
-  )
+  w_ref = w_cont * (delta_y - out_delta - eta_cont)
+
+  M2 = np.mean(w_ref[:, n_x] * int_cov, axis=0)
 
   inf_cont_2 = np.dot(asy_lin_rep_ps, M2) 
 
-  M3 = np.mean(w_count * int_cov)
+  M3 = np.mean(w_count[:, n_x] * int_cov)
 
   inf_cont_3 = np.mean(asy_lin_rep_wols, M3)
 
