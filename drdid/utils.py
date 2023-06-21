@@ -91,4 +91,4 @@ def fit_ps(d, x, w, post = 1):
 
   asy_lin_ps = np.dot(score_ps, hessian)
 
-  return (ps_fit, w_cont_pre, w_cont, w_cont_post, vcov, asy_lin_ps)
+  return (ps_fit, w_cont_pre, w_cont, w_cont_post, asy_lin_ps)
