@@ -17,7 +17,7 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
   pscore_tr = glm(D, int_cov, family=binomial, freq_weights=i_weights)\
     .fit()
 
-  _, w_cont_pre, _,\
+  ps_fit, w_cont_pre, _,\
     w_cont_post, _, asy_lin_rep_ps = fit_ps(D, int_cov, i_weights, post)
   
   def reg_out_y(d, p, y = y, int_cov = int_cov, wg = i_weights):
