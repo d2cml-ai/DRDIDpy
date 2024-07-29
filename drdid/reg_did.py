@@ -13,46 +13,66 @@ def asy_lin_wols(d, post, y, out_y, int_cov, i_w, n):
   asy_lin_rep_ols = np.dot(wols_ex, xpx_inv)
   return asy_lin_rep_ols
 
-def reg_did_panel(
-  y1: ndarray, y0: ndarray, D: ndarray,
-  covariates, i_weights = None, boot = False, inf_function = True):
+def reg_did_panel(y1, y0, D, covariates, i_weights=None):
+    D = np.asarray(D).flatten()
+    n = len(D)
+    deltaY = np.asarray(y1 - y0).flatten()
+    int_cov = np.ones((n, 1))
+    
+    if covariates is not None:
+        covariates = np.asarray(covariates)
+        if np.all(covariates[:, 0] == 1):
+            int_cov = covariates
+        else:
+            int_cov = np.column_stack((np.ones(n), covariates))
+    
+    if i_weights is None:
+        i_weights = np.ones(n)
+    elif np.min(i_weights) < 0:
+        raise ValueError("i_weights must be non-negative")
+    
+    i_weights = i_weights / np.mean(i_weights)
+    
+    mask = D == 0
+    X = int_cov[mask]
+    y = deltaY[mask]
+    w = i_weights[mask]
+    
+    # reg_coeff = np.linalg.lstsq(X * w[:, np.newaxis], y * w, rcond=None)[0]
+    reg_coeff = lm(y, X, weights=w).fit().params
+    print(reg_coeff)
+    
+    if np.any(np.isnan(reg_coeff)):
+        raise ValueError("Outcome regression model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is probably the reason for it.")
+    
+    out_delta = np.dot(int_cov, reg_coeff)
+    w_treat = i_weights * D
+    w_cont = i_weights * (1 - D)
+    reg_att_treat = w_treat * deltaY
+    reg_att_cont = w_cont * out_delta
+    eta_treat = np.mean(reg_att_treat) / np.mean(w_treat)
+    eta_cont = np.mean(reg_att_cont) / np.mean(w_cont)
+    reg_att = eta_treat - eta_cont
+    
+    weights_ols = i_weights * (1 - D)
+    wols_x = weights_ols[:, np.newaxis] * int_cov
+    wols_eX = weights_ols[:, np.newaxis] * (deltaY - out_delta)[:, np.newaxis] * int_cov
+    XpX_inv = np.linalg.inv(np.dot(wols_x.T, int_cov) / n)
+    asy_lin_rep_ols = np.dot(wols_eX, XpX_inv)
+    
+    inf_treat = (reg_att_treat - w_treat * eta_treat) / np.mean(w_treat)
+    # print(np.sum(w_treat * eta_treat))
+    
+    inf_cont_1 = (reg_att_cont - w_cont * eta_cont)
+    M1 = np.mean(w_cont[:, np.newaxis] * int_cov, axis=0)
+    inf_cont_2 = np.dot(asy_lin_rep_ols, M1)
+    inf_control = (inf_cont_1 + inf_cont_2) / np.mean(w_cont)
+    
+    reg_att_inf_func = (inf_treat - inf_control)
+    se_reg_att = np.std(reg_att_inf_func) / np.sqrt(n)
+    
+    return reg_att, reg_att_inf_func
 
-  n = len(D)
-  delta_y = y1 - y0
-  int_cov = np.ones(n)
-
-  d1 = 1 - D
-  
-  int_cov = has_intercept(covariates, n)
-  i_weights = has_weights(i_weights, n)
-
-  rows = D == 0
-
-  out_delta, asy_lin_rep_ols = \
-    out_wols(delta_y, d1, int_cov, rows, i_weights)
-
-  w_treat = i_weights * D
-  w_cont = w_treat.copy()
-
-  reg_att_treat = w_treat * delta_y
-  reg_att_cont = w_cont * out_delta
-
-  eta_treat = np.mean(reg_att_treat) / np.mean(w_treat)
-  eta_cont = np.mean(reg_att_cont) / np.mean(w_cont)
-
-  reg_att = eta_treat - eta_cont
-
-
-  inf_treat = (reg_att_treat - w_treat * eta_treat) / np.mean(w_treat)
-  inf_cont_1 = (reg_att_cont - w_cont * eta_cont)
-
-  M1 = np.mean(w_cont[:, n_x] * int_cov, axis = 0)
-  inf_cont_2 = np.dot(asy_lin_rep_ols, M1)
-  inf_control = (inf_cont_1 + inf_cont_2) / np.mean(w_cont)
-
-  reg_att_inf_func = inf_treat - inf_control
-  
-  return (reg_att, reg_att_inf_func)
 
 
 def reg_did_rc(
