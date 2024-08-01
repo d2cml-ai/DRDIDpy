@@ -3,6 +3,8 @@ from numpy import ndarray
 import statsmodels.api as sm
 from .utils import *
 
+import numpy as np
+import statsmodels.api as sm
 
 def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights = None):
   
@@ -162,64 +164,91 @@ def drdid_rc(y: ndarray, post: ndarray, D: ndarray, covariates = None, i_weights
 
   return (dr_att, dr_att_inf_func)
 
-def drdid_panel(
-  y1: ndarray, y0: ndarray, D: ndarray,
-  covariates, i_weights = None, boot = False, inf_function = True):
 
-  n = len(D)
-  delta_y = y1 - y0
+def drdid_panel(y1, y0, D, covariates, i_weights=None, boot=False, boot_type="weighted", nboot=None, inffunc=False):
+    # Convert inputs to numpy arrays
+    D = np.asarray(D).flatten()
+    n = len(D)
+    deltaY = np.asarray(y1 - y0).flatten()
+    
+    # Add constant to covariate matrix
+    if covariates is None:
+        int_cov = np.ones((n, 1))
+    else:
+        covariates = np.asarray(covariates)
+        if np.all(covariates[:, 0] == 1):
+            int_cov = covariates
+        else:
+            int_cov = np.column_stack((np.ones(n), covariates))
+    
+    # Weights
+    if i_weights is None:
+        i_weights = np.ones(n)
+    elif np.min(i_weights) < 0:
+        raise ValueError("i_weights must be non-negative")
+    
+    # Normalize weights
+    i_weights = i_weights / np.mean(i_weights)
+    # print(D.mean())
+    
+    # Compute the Pscore by MLE
+    pscore_model = sm.GLM(D, int_cov, family=sm.families.Binomial(), freq_weights=i_weights)
+    pscore_results = pscore_model.fit()
+    # print(D.mean())
+    # print(pscore_results.summary2())
+    if not pscore_results.converged:
+        print("Warning: glm algorithm did not converge")
+    if np.any(np.isnan(pscore_results.params)):
+        raise ValueError("Propensity score model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is a likely reason.")
+    ps_fit = pscore_results.predict()
+    ps_fit = np.minimum(ps_fit, 1 - 1e-16)
+    # print(ps_fit)
+    
+    # Compute the Outcome regression for the control group using wols
+    mask = D == 0
+    reg_model = sm.WLS(deltaY[mask], int_cov[mask], weights=i_weights[mask])
+    reg_results = reg_model.fit()
+    if np.any(np.isnan(reg_results.params)):
+        raise ValueError("Outcome regression model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is a likely reason.")
+    out_delta = np.dot(int_cov, reg_results.params)
+    
+    # Compute Traditional Doubly Robust DiD estimators
+    w_treat = i_weights * D
+    w_cont = i_weights * ps_fit * (1 - D) / (1 - ps_fit)
+    dr_att_treat = w_treat * (deltaY - out_delta)
+    dr_att_cont = w_cont * (deltaY - out_delta)
+    
+    eta_treat = np.mean(dr_att_treat) / np.mean(w_treat)
+    eta_cont = np.mean(dr_att_cont) / np.mean(w_cont)
+    
+    dr_att = eta_treat - eta_cont
+    
+    # Compute influence function
+    weights_ols = i_weights * (1 - D)
+    wols_x = weights_ols[:, np.newaxis] * int_cov
+    wols_eX = weights_ols[:, np.newaxis] * (deltaY - out_delta)[:, np.newaxis] * int_cov
+    XpX_inv = np.linalg.inv(np.dot(wols_x.T, int_cov) / n)
+    asy_lin_rep_wols = np.dot(wols_eX, XpX_inv)
+    
+    score_ps = i_weights[:, np.newaxis] * (D - ps_fit)[:, np.newaxis] * int_cov
+    Hessian_ps = pscore_results.cov_params() * n
+    asy_lin_rep_ps = np.dot(score_ps, Hessian_ps)
+    
+    inf_treat_1 = dr_att_treat - w_treat * eta_treat
+    M1 = np.mean(w_treat[:, np.newaxis] * int_cov, axis=0)
+    inf_treat_2 = np.dot(asy_lin_rep_wols, M1)
+    inf_treat = (inf_treat_1 - inf_treat_2) / np.mean(w_treat)
+    
+    inf_cont_1 = dr_att_cont - w_cont * eta_cont
+    M2 = np.mean(w_cont[:, np.newaxis] * (deltaY - out_delta - eta_cont)[:, np.newaxis] * int_cov, axis=0)
+    inf_cont_2 = np.dot(asy_lin_rep_ps, M2)
+    M3 = np.mean(w_cont[:, np.newaxis] * int_cov, axis=0)
+    inf_cont_3 = np.dot(asy_lin_rep_wols, M3)
+    inf_control = (inf_cont_1 + inf_cont_2 - inf_cont_3) / np.mean(w_cont)
+    
+    dr_att_inf_func = inf_treat - inf_control
+    
+    return dr_att, dr_att_inf_func
 
-  int_cov = has_intercept(covariates, n)
-  i_weights = has_weights(i_weights, n)
-
-  ref_rows = D == 0
-  w_d = i_weights * D
-  d1 = (1 - D)
-
-  out_delta, asy_lin_rep_wols = \
-    out_wols(delta_y, d1, x, ref_rows, i_weights)
-
-
-  _, _, w_cont\
-    , _, _, asy_lin_rep_ps = fit_ps(D, int_cov, i_weights, post)
-
-  w_treat = w_d
-  y_out = delta_y - out_delta
-
-  dr_att_treat = w_treat * y_out
-  dr_att_cont = w_cont * y_out
-
-  eta_treat = eta_val(dr_att_treat, w_treat)
-  eta_cont  = eta_val(dr_att_cont, w_cont)
-  
-  dr_att = eta_treat - eta_cont
-
-  inf_treat_1 = dr_att_treat - w_treat * eta_treat
-
-  M1 = np.mean(w_treat[:, n_x] * int_cov, axis=0)
-  inf_treat_2 = np.dot(asy_lin_rep_wols, M1) 
-
-  inf_treat = (inf_treat_1 - inf_treat_2) / np.mean(w_treat)
-
-  inf_cont_1 = (dr_att_cont - w_cont) * eta_cont
-
-  w_ref = w_cont * (delta_y - out_delta - eta_cont)
-
-  M2 = np.mean(w_ref[:, n_x] * int_cov, axis=0)
-
-  inf_cont_2 = np.dot(asy_lin_rep_ps, M2) 
-
-  M3 = np.mean(w_count[:, n_x] * int_cov)
-
-  inf_cont_3 = np.mean(asy_lin_rep_wols, M3)
-
-  inf_control = (inf_cont_1 + inf_cont_2 - inf_cont_3) / np.mean(w_cont)
-
-  dr_att_inf_func = inf_treat - inf_control
-
-  if not boot:
-    se_att = np.std(dr_att_inf_func) / np.sqrt(n)
-
-  return (dr_att, dr_att_inf_func, se_att)
 
   
