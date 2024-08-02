@@ -6,7 +6,7 @@ from .utils import *
 import numpy as np
 import statsmodels.api as sm
 def drdid_rc(y, post, D, covariates, i_weights=None):
-    print("dr rc")
+
     # Convert inputs to numpy arrays
     D = np.asarray(D).flatten()
     n = len(D)
@@ -178,13 +178,13 @@ def drdid_rc(y, post, D, covariates, i_weights=None):
     
     dr_att_inf_func = dr_att_inf_func1 + inf_eff + inf_or
     se = np.std(dr_att_inf_func, ddof=1) / np.sqrt(n)
-    print(f"att: {dr_att} \t se: {se}")
-    # return dr_att, dr_att_inf_func
+    #print(f"att: {dr_att} \t se: {se}")
+    return dr_att, dr_att_inf_func
 
 
 
 def drdid_panel(y1, y0, D, covariates, i_weights=None):
-    print('dr panel')
+
     # Convert inputs to numpy arrays
     D = np.asarray(D).flatten()
     n = len(D)
@@ -268,8 +268,8 @@ def drdid_panel(y1, y0, D, covariates, i_weights=None):
     
     dr_att_inf_func = inf_treat - inf_control
     se = np.std(dr_att_inf_func, ddof=1) / np.sqrt(n)
-    print(f"att: {dr_att} \t se: {se}")
-    # return dr_att, dr_att_inf_func
+    # print(f"att: {dr_att} \t se: {se}")    
+    return dr_att, dr_att_inf_func
 
 
   
