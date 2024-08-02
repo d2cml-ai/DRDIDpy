@@ -6,6 +6,7 @@ from .utils import *
 import numpy as np
 import statsmodels.api as sm
 def drdid_rc(y, post, D, covariates, i_weights=None):
+    print("dr rc")
     # Convert inputs to numpy arrays
     D = np.asarray(D).flatten()
     n = len(D)
@@ -176,16 +177,19 @@ def drdid_rc(y, post, D, covariates, i_weights=None):
     inf_or = inf_or_post - inf_or_pre
     
     dr_att_inf_func = dr_att_inf_func1 + inf_eff + inf_or
-    
-    return dr_att, dr_att_inf_func
+    se = np.std(dr_att_inf_func, ddof=1) / np.sqrt(n)
+    print(f"att: {dr_att} \t se: {se}")
+    # return dr_att, dr_att_inf_func
 
 
 
 def drdid_panel(y1, y0, D, covariates, i_weights=None):
+    print('dr panel')
     # Convert inputs to numpy arrays
     D = np.asarray(D).flatten()
     n = len(D)
     deltaY = np.asarray(y1 - y0).flatten()
+    i_weights = np.asarray(i_weights).flatten()
     
     # Add constant to covariate matrix
     if covariates is None:
@@ -263,8 +267,9 @@ def drdid_panel(y1, y0, D, covariates, i_weights=None):
     inf_control = (inf_cont_1 + inf_cont_2 - inf_cont_3) / np.mean(w_cont)
     
     dr_att_inf_func = inf_treat - inf_control
-    
-    return dr_att, dr_att_inf_func
+    se = np.std(dr_att_inf_func, ddof=1) / np.sqrt(n)
+    print(f"att: {dr_att} \t se: {se}")
+    # return dr_att, dr_att_inf_func
 
 
   
