@@ -1,11 +1,12 @@
 from .utils import *
 
 def std_ipw_did_panel(y1, y0, D, covariates, i_weights = None):
+    # print("ipw: panel")
     D = np.asarray(D).flatten()
     n = len(D)
     delta_y = np.asarray(y1 - y0).flatten()
     int_cov = np.ones((n, 1))
-    
+    i_weights = np.asarray(i_weights).flatten()
     if covariates is not None:
         covariates = np.asarray(covariates)
         if np.all(covariates[:, 0] == 1):
@@ -49,15 +50,18 @@ def std_ipw_did_panel(y1, y0, D, covariates, i_weights = None):
     inf_cont_1 = att_cont - w_cont * eta_cont
     pre_m2 = w_cont * (delta_y - eta_cont)
     M2 = np.mean(pre_m2[:, np.newaxis] * int_cov, axis = 0)
-    print(M2)
+    # print(M2)
     inf_cont_2 = np.dot(asy_lin_rep_ps, M2)
 
     inf_control = (inf_cont_1 + inf_cont_2) / np.mean(w_cont)
     att_inf_func = inf_treat - inf_control
-    print(np.std(att_inf_func) / np.sqrt(n))
+    se = np.std(att_inf_func, ddof=1) / np.sqrt(n)
+    # print(f"att: {ipw_att} \t se: {se}")    
+    # print(np.std(att_inf_func) / np.sqrt(n))
     return ipw_att, att_inf_func
 
 def std_ipw_did_rc(y, post, D, covariates, i_weights = None):
+    # print("ipw: rc")
     D = np.asarray(D).flatten()
     y = np.asarray(y).flatten()
     post = np.asarray(post).flatten()
@@ -146,6 +150,8 @@ def std_ipw_did_rc(y, post, D, covariates, i_weights = None):
     #get the influence function of the DR estimator (put all pieces together)
     att_inf_func = inf_treat - inf_cont
     # print(np.std(att_inf_func) / np.sqrt(n))
+    se = np.std(att_inf_func, ddof=1) / np.sqrt(n)
+    # print(f"att: {ipw_att} \t se: {se}")    
     return ipw_att, att_inf_func
 
 
