@@ -13,7 +13,7 @@ setup(
     packages=['drdid'],
     install_requires=[
         'pandas', 
-        'numpy<=1.24.3',
+        'numpy',
         'statsmodels'
     ],
     long_description='''
