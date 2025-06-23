@@ -1,0 +1,14 @@
+LICENSE
+README.md
+setup.py
+drdid/__init__.py
+drdid/_version_.py
+drdid/drdid.py
+drdid/ipwd_did.py
+drdid/reg_did.py
+drdid/utils.py
+drdid.egg-info/PKG-INFO
+drdid.egg-info/SOURCES.txt
+drdid.egg-info/dependency_links.txt
+drdid.egg-info/requires.txt
+drdid.egg-info/top_level.txt
