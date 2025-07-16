@@ -5,7 +5,7 @@ from .utils import *
 
 import numpy as np
 import statsmodels.api as sm
-def drdid_rc(y, post, D, covariates, i_weights=None):
+def drdid_rc(y, post, D, covariates, i_weights=None, trim_level = 0.995):
 
     # Convert inputs to numpy arrays
     D = np.asarray(D).flatten()
@@ -38,6 +38,15 @@ def drdid_rc(y, post, D, covariates, i_weights=None):
         raise ValueError("Propensity score model coefficients have NA components. \n Multicollinearity (or lack of variation) of covariates is a likely reason.")
     ps_fit = pscore_results.predict()
     ps_fit = np.minimum(ps_fit, 1 - 1e-16)
+
+    # I am giving 0 weights to observation which do not meet trim_level
+    # 3) Zero–out weights for trimmed units
+    trim_mask    = np.ones(n, dtype=bool)
+    is_control   = (D == 0)
+    trim_mask[is_control] = (ps_fit[is_control] < trim_level)
+    i_weights    = i_weights * trim_mask
+    # After modifying this everything is the same
+    
     
     # Compute the Outcome regression for the control group at the pre-treatment period
     mask_cont_pre = (D == 0) & (post == 0)
@@ -183,7 +192,7 @@ def drdid_rc(y, post, D, covariates, i_weights=None):
 
 
 
-def drdid_panel(y1, y0, D, covariates, i_weights=None):
+def drdid_panel(y1, y0, D, covariates, i_weights=None, trim_level = 0.995):
 
     # Convert inputs to numpy arrays
     D = np.asarray(D).flatten()
@@ -223,6 +232,14 @@ def drdid_panel(y1, y0, D, covariates, i_weights=None):
     ps_fit = pscore_results.predict()
     ps_fit = np.minimum(ps_fit, 1 - 1e-16)
     # print(ps_fit)
+
+    # I am giving 0 weights to observation which do not meet trim_level
+    # 3) Zero–out weights for trimmed units
+    trim_mask    = np.ones(n, dtype=bool)
+    is_control   = (D == 0)
+    trim_mask[is_control] = (ps_fit[is_control] < trim_level)
+    i_weights    = i_weights * trim_mask
+    # After modifying this everything is the same
     
     # Compute the Outcome regression for the control group using wols
     mask = D == 0

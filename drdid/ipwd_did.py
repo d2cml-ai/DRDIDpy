@@ -1,6 +1,6 @@
 from .utils import *
 
-def std_ipw_did_panel(y1, y0, D, covariates, i_weights = None):
+def std_ipw_did_panel(y1, y0, D, covariates, i_weights = None, trim_level = 0.995):
     # print("ipw: panel")
     D = np.asarray(D).flatten()
     n = len(D)
@@ -31,6 +31,15 @@ def std_ipw_did_panel(y1, y0, D, covariates, i_weights = None):
     ps_fit = pscore_results.predict()
     ps_fit = np.minimum(ps_fit, 1 - 1e-16)
 
+    # I am giving 0 weights to observation which do not meet trim_level
+    # 3) Zero–out weights for trimmed units
+    trim_mask    = np.ones(n, dtype=bool)
+    is_control   = (D == 0)
+    trim_mask[is_control] = (ps_fit[is_control] < trim_level)
+    i_weights    = i_weights * trim_mask
+    # After modifying this everything is the same
+
+
     w_treat = i_weights * D
     w_cont = i_weights * ps_fit * (1 - D) / (1 - ps_fit)
     
@@ -60,7 +69,7 @@ def std_ipw_did_panel(y1, y0, D, covariates, i_weights = None):
     # print(np.std(att_inf_func) / np.sqrt(n))
     return ipw_att, att_inf_func
 
-def std_ipw_did_rc(y, post, D, covariates, i_weights = None):
+def std_ipw_did_rc(y, post, D, covariates, i_weights = None, trim_level = 0.995):
     # print("ipw: rc")
     D = np.asarray(D).flatten()
     y = np.asarray(y).flatten()
@@ -96,6 +105,13 @@ def std_ipw_did_rc(y, post, D, covariates, i_weights = None):
     ps_fit = pscore_results.predict()
     ps_fit = np.minimum(ps_fit, 1 - 1e-16)
 
+    # I am giving 0 weights to observation which do not meet trim_level
+    # 3) Zero–out weights for trimmed units
+    trim_mask    = np.ones(n, dtype=bool)
+    is_control   = (D == 0)
+    trim_mask[is_control] = (ps_fit[is_control] < trim_level)
+    i_weights    = i_weights * trim_mask
+    # After modifying this everything is the same
 
     w_treat_pre = i_weights * D * (1 - post)
     w_treat_post = i_weights * D * post
