@@ -67,7 +67,8 @@ caching, while importing regression kernels from `drdid.reg_did`. Therefore a
 change in only one repository cannot certify both packages. The six CSDID routes
 must continue to be compared against R did/DRDID, and standalone DRDID against R
 DRDID. The coordinated candidates are Python DRDID 1.1.7 and CSDID 0.4.4,
-whose dependency floor requires `drdid>=1.1.7`. Release DRDID first so installing
+whose dependency pins `drdid==1.1.7`. Future backend upgrades must update the
+reviewed peer lock and exact dependency together. Release DRDID first so installing
 the new CSDID cannot retain the older standalone backend. CSDID's required CI
 builds both reviewed revisions as wheels and tests them together in a fresh
 environment, including their full numerical suites and the direct kernel bridge.
