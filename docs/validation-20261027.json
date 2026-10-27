@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-27",
+  "objective": "Align the six existing standalone Python DRDID kernels with R DRDID and CSDID under matched specifications.",
+  "scope": [
+    "traditional DR panel/RC",
+    "normalized IPW panel/RC",
+    "regression panel/RC"
+  ],
+  "r_revision": "eaac3b49cd225d0d7706c633858555a5f204e21e",
+  "python_before_revision": "75cac04ee98959ccf1c06df80fa447cc20c8fa42",
+  "python_before_contracts": {
+    "tests": 238,
+    "errors": 0,
+    "failures": 130,
+    "skipped": 0
+  },
+  "python_before_note": "Failures include observed bugs, missing validation and added default/shape contracts, not 130 distinct estimator defects.",
+  "proposed_installed_wheel_tests": {
+    "tests": 379,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "proposed_installed_wheel_sha256": "eb5309605a742cb4ad6ebe143e43dccd479edaaf84de841d06ee9d7aeb4e525f",
+  "r_fixed_configurations": 80,
+  "r_compared_fields": [
+    "ATT",
+    "full observation influence vector",
+    "analytical SE",
+    "lower/upper pointwise95% limits"
+  ],
+  "r_backend_replay": "All80 raw JSON payloads bit-identical between fastglmPure and historical fastglm wrapper, with same defaults.",
+  "csdid_common_input_kernel_comparisons": 72,
+  "csdid_installed_dependency_tests": {
+    "tests": 2310,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "csdid_tested_revision": "777b9e06e03d98830019ba14f541cfa1d0d59c46",
+  "metamorphic_pytest_cases": 60,
+  "metamorphic_transformations": 390,
+  "independent_refitted_derivative_probe_checks": 108,
+  "source_guard_negative_probes": {
+    "dirty_checkout_audit_exit": 2,
+    "dirty_export_exit": 1,
+    "dirty_export_wrote_output": false,
+    "committed_new_test_audit_exit": 3,
+    "changed_files": [
+      "tests/testthat/test-python-parity-source-probe.R"
+    ],
+    "tampered_input_metadata_test_exit": 1,
+    "all_expected_failures_observed": true
+  },
+  "checks": [
+    "Python3.8 syntax",
+    "actionlint",
+    "git diff --check",
+    "installed wheel/source equality"
+  ],
+  "remaining": [
+    "Upstream review and a new published release are required; the proposed local wheel retains the existing development version and is not a new PyPI release.",
+    "CSDID dependency minimum/shared-kernel consolidation follows the released upstream version, preserving CSDID cache semantics.",
+    "Upstream required-check rules need repository-admin permissions unavailable to this contributor.",
+    "No claim of support for improved/IPT, alternativeRC, TWFE, nonnormalizedIPW or refit bootstrap APIs.",
+    "R-only pushes do not trigger this Python workflow; latest sources are checked on the next Python push/PR."
+  ]
+}

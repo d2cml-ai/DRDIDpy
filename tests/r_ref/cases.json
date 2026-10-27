@@ -1,0 +1,722 @@
+[
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "none",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-000"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "none",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-001"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "none",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-002"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "none",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-003"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "none",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-004"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "none",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-005"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "ones",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-006"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "ones",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-007"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "ones",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-008"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "ones",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-009"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "ones",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-010"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "ones",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-011"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-012"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-013"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-014"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-015"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-016"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-017"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "zero",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-018"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "zero",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-019"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "zero",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-020"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "zero",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-021"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "zero",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-022"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "zero",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-023"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "none",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-024"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "none",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-025"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "none",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-026"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "none",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-027"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "none",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-028"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "none",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-029"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "ones",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-030"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "ones",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-031"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "ones",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-032"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "ones",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-033"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "ones",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-034"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "ones",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-035"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "weights",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-036"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "weights",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-037"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "weights",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-038"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "weights",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-039"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "weights",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-040"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "weights",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-041"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "zero",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-042"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "zero",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-043"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "zero",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-044"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "zero",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-045"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "zero",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-046"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": false,
+    "weights": "zero",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-047"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-048"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.9,
+    "id": "case-049"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-050"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.9,
+    "id": "case-051"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-052"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.9,
+    "id": "case-053"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-054"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.9,
+    "id": "case-055"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-056"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "weights",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-057"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-058"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "drdid_panel",
+    "scale": 1.0,
+    "trim_level": 0.9,
+    "id": "case-059"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-060"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "drdid_rc",
+    "scale": 1.0,
+    "trim_level": 0.9,
+    "id": "case-061"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-062"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "std_ipw_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.9,
+    "id": "case-063"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-064"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "std_ipw_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.9,
+    "id": "case-065"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "reg_did_panel",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-066"
+  },
+  {
+    "dataset": "trim",
+    "covariates": true,
+    "weights": "zero",
+    "method": "reg_did_rc",
+    "scale": 1.0,
+    "trim_level": 0.995,
+    "id": "case-067"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_panel",
+    "scale": 1e-10,
+    "trim_level": 0.995,
+    "id": "case-068"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_rc",
+    "scale": 1e-10,
+    "trim_level": 0.995,
+    "id": "case-069"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_panel",
+    "scale": 1e-10,
+    "trim_level": 0.995,
+    "id": "case-070"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_rc",
+    "scale": 1e-10,
+    "trim_level": 0.995,
+    "id": "case-071"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "reg_did_panel",
+    "scale": 1e-10,
+    "trim_level": 0.995,
+    "id": "case-072"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "reg_did_rc",
+    "scale": 1e-10,
+    "trim_level": 0.995,
+    "id": "case-073"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_panel",
+    "scale": 10000000000.0,
+    "trim_level": 0.995,
+    "id": "case-074"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "drdid_rc",
+    "scale": 10000000000.0,
+    "trim_level": 0.995,
+    "id": "case-075"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_panel",
+    "scale": 10000000000.0,
+    "trim_level": 0.995,
+    "id": "case-076"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "std_ipw_did_rc",
+    "scale": 10000000000.0,
+    "trim_level": 0.995,
+    "id": "case-077"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "reg_did_panel",
+    "scale": 10000000000.0,
+    "trim_level": 0.995,
+    "id": "case-078"
+  },
+  {
+    "dataset": "ordinary",
+    "covariates": true,
+    "weights": "weights",
+    "method": "reg_did_rc",
+    "scale": 10000000000.0,
+    "trim_level": 0.995,
+    "id": "case-079"
+  }
+]
