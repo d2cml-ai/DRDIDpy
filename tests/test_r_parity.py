@@ -22,6 +22,14 @@ else:
 REFERENCES = PAYLOAD["results"]
 
 
+def _assert_both_units(actual, expected, scale):
+    # Preserve the strict raw-output comparison as well as the declared unit
+    # conversion. The latter makes small outcomes informative under atol.
+    np.testing.assert_allclose(actual, expected, rtol=1e-6, atol=1e-7)
+    np.testing.assert_allclose(np.asarray(actual) / scale, np.asarray(expected) / scale,
+                               rtol=1e-6, atol=1e-7)
+
+
 def test_reviewed_reference_integrity():
     manifest = json.loads((ROOT / "manifest.json").read_text())
     assert manifest["r_revision"] == "eaac3b49cd225d0d7706c633858555a5f204e21e"
@@ -66,15 +74,12 @@ def test_complete_output_matches_r(case):
     expected = REFERENCES[case["id"]]
     assert set(expected) == {"att", "influence", "se", "lci", "uci"}
     assert np.asarray(expected["influence"]).shape == (n,)
-    # Same fixed tolerances as CSDID's current-R gate. Normalize by a declared
-    # outcome-unit conversion so small-outcome cases cannot pass on atol alone.
-    # This transformation is fixed in cases.json, never fitted to a discrepancy.
-    np.testing.assert_allclose(att / scale, expected["att"] / scale, rtol=1e-6, atol=1e-7)
-    np.testing.assert_allclose(influence / scale, np.asarray(expected["influence"]) / scale,
-                               rtol=1e-6, atol=1e-7)
+    # Same fixed raw-output tolerances as CSDID's current-R gate, plus the
+    # predeclared conversion in cases.json (never fitted to a discrepancy).
+    _assert_both_units(att, expected["att"], scale)
+    _assert_both_units(influence, expected["influence"], scale)
     # R analytical SE is sd(IF)*sqrt(n-1)/n, i.e. the centered L2 norm/n.
     se = np.linalg.norm(influence - influence.mean()) / n
-    np.testing.assert_allclose(se / scale, expected["se"] / scale, rtol=1e-6, atol=1e-7)
-    np.testing.assert_allclose(np.array([att - 1.96*se, att + 1.96*se]) / scale,
-                               np.array([expected["lci"], expected["uci"]]) / scale,
-                               rtol=1e-6, atol=1e-7)
+    _assert_both_units(se, expected["se"], scale)
+    _assert_both_units([att - 1.96*se, att + 1.96*se],
+                       [expected["lci"], expected["uci"]], scale)

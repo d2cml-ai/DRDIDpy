@@ -21,7 +21,8 @@ ATT/influence/SE/interval references and a manifest of hashes. The grid covers
 all six methods, omitted/unit/varying/zero weights, intercept-only and covariate
 models, controls above trimming thresholds, two thresholds, and outcome unit
 changes by factors of `1e-10` and `1e10`. Comparisons use `atol=1e-7, rtol=1e-6`
-in original outcome units. Full influence vectors and nonfinite behavior are
+both on raw outputs and after converting back to original outcome units.
+Full influence vectors and nonfinite behavior are
 checked, not only point estimates. The input/unit conversion is fixed before
 comparison. Ordinary tests need no R installation.
 

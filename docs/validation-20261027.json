@@ -68,5 +68,6 @@
   ],
   "source_tree_bound_files": 193,
   "native_export_recompile_forced": true,
-  "provenance_hardening_preserved_all_80_numerical_payloads": true
+  "provenance_hardening_preserved_all_80_numerical_payloads": true,
+  "r_tolerance_scope": "Both raw outputs and predeclared original outcome units, atol1e-7/rtol1e-6 in each."
 }

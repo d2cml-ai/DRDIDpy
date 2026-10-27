@@ -9,7 +9,7 @@
   "tolerance": {
     "absolute": 1e-07,
     "relative": 1e-06,
-    "units": "Normalize both outputs by predeclared case outcome scale, then apply tolerance in original units."
+    "units": "Both strict raw-output checks and checks after dividing both outputs by the predeclared outcome scale."
   },
   "r_source_hashes": {
     ".Rbuildignore": "a69b4e0d3156265b98f3ac6aa3da199425ab4badf5a1935e204a77df2f70c992",
