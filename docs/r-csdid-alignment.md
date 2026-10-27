@@ -75,10 +75,9 @@ environment, including their full numerical suites and the direct kernel bridge.
 Consolidating CSDID's cached local kernels remains separate from validating this
 release pair. These validation commands do not publish either package.
 
-CI checks should be required in upstream branch protection. The contributor
-cannot change upstream repository rules; adding workflow files alone does not
-make those checks mandatory. Publishing is now gated on the successful main
-branch estimator workflow and checks out its exact tested commit. CSDID also
-checks its published backend against the reviewed peer source before uploading
-its own release. Both version updates remain proposals until reviewed and
-released; the current PyPI `drdid` 1.1.6 does not contain these fixes.
+The four estimator workflow checks are required for merging into DRDIDpy's
+`main` branch. Publishing independently verifies the latest successful main-push
+workflow, all four checks and the exact tested commit. CSDID also checks its
+published backend against the reviewed peer source before uploading its own
+release. PyPI `drdid` 1.1.6 predates these fixes. See
+[automated PyPI releases](publishing.md) for Trusted Publishing setup and retries.

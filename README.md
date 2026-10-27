@@ -55,3 +55,4 @@ aggregation, overlap checks and inference layers.
 
 See [the validation and release notes](docs/r-csdid-alignment.md) for the tested
 R source revision, regression evidence and the CSDID integration sequence.
+See [automated PyPI releases](docs/publishing.md) for publishing setup and retries.
