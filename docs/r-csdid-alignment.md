@@ -66,13 +66,18 @@ Python CSDID currently keeps local DR/IPW kernels with additional performance
 caching, while importing regression kernels from `drdid.reg_did`. Therefore a
 change in only one repository cannot certify both packages. The six CSDID routes
 must continue to be compared against R did/DRDID, and standalone DRDID against R
-DRDID. After upstream review and a new PyPI release, CSDID can declare a tested
-minimum dependency version and consume the shared implementation without losing
-its cached-fit semantics. That follow-up requires its complete installed-package
-and group-time/aggregation tests. No unreleased dependency version is required
-by this PR, and no PyPI release is performed by these validation commands.
+DRDID. The coordinated candidates are Python DRDID 1.1.7 and CSDID 0.4.4,
+whose dependency floor requires `drdid>=1.1.7`. Release DRDID first so installing
+the new CSDID cannot retain the older standalone backend. CSDID's required CI
+builds both reviewed revisions as wheels and tests them together in a fresh
+environment, including their full numerical suites and the direct kernel bridge.
+Consolidating CSDID's cached local kernels remains separate from validating this
+release pair. These validation commands do not publish either package.
 
 CI checks should be required in upstream branch protection. The contributor
 cannot change upstream repository rules; adding workflow files alone does not
-make those checks mandatory. The existing PyPI publication workflow and version
-are unchanged in this correction.
+make those checks mandatory. Publishing is now gated on the successful main
+branch estimator workflow and checks out its exact tested commit. CSDID also
+checks its published backend against the reviewed peer source before uploading
+its own release. Both version updates remain proposals until reviewed and
+released; the current PyPI `drdid` 1.1.6 does not contain these fixes.
