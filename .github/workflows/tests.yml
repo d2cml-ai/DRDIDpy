@@ -1,0 +1,120 @@
+name: Estimator tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: estimator-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Estimators (Python ${{ matrix.python }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.8', '3.12']
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest .
+      - run: python -m pytest tests -q
+
+  csdid:
+    name: CSDID integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: python-drdid
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: d2cml-ai/csdid
+          path: csdid
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install both checked-out packages
+        run: python -m pip install pytest ./python-drdid ./csdid
+      - name: Compare actual downstream kernels on common inputs
+        run: |
+          git -C csdid rev-parse HEAD
+          python python-drdid/scripts/check_csdid_integration.py
+      - name: Run downstream package regression suite
+        working-directory: csdid
+        run: python -m pytest csdid/test_csdid -m 'not slow' -q
+
+  current-r:
+    name: Current R DRDID parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: python-drdid
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: pedrohcgs/DRDID
+          path: r-drdid
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest ./python-drdid
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2
+        with:
+          working-directory: python-drdid
+          packages: |
+            local::${{ github.workspace }}/r-drdid
+            any::pkgload
+            any::jsonlite
+            any::digest
+          dependencies: '"hard"'
+          install-pandoc: false
+          install-quarto: false
+      - name: Record sources and generate current R references
+        run: |
+          mkdir -p report
+          git -C r-drdid rev-parse HEAD > report/r-revision.txt
+          git -C python-drdid rev-parse HEAD > report/python-revision.txt
+          Rscript python-drdid/tests/r_ref/export.R r-drdid report/current-r.json
+      - name: Compare full ATT, influence functions and analytical inference
+        working-directory: python-drdid
+        env:
+          DRDID_R_REFERENCE: ${{ github.workspace }}/report/current-r.json
+        run: |
+          DRDID_R_REVISION=$(git -C ../r-drdid rev-parse HEAD) \
+            python -m pytest tests/test_r_parity.py -q --junitxml=../report/parity.xml
+      - name: Require review of changes to the complete upstream tree
+        if: always()
+        run: python python-drdid/scripts/check_r_source.py r-drdid
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: current-r-parity
+          path: report/
+          retention-days: 14
