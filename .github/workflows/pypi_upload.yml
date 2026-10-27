@@ -73,6 +73,7 @@ jobs:
     needs: [gate, build]
     if: needs.gate.outputs.ready == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     environment:
       name: pypi
       url: https://pypi.org/p/drdid
@@ -92,6 +93,12 @@ jobs:
           path: dist/
       - name: Verify any files already published for this version
         run: python3 scripts/check_release_ci.py --artifacts dist
+      # The upload action adds attestation sidecars to dist/. Keep the exact
+      # candidate distributions separate for the strict public readback check.
+      - name: Preserve tested artifacts for publication readback
+        run: |
+          mkdir publication-candidate
+          cp dist/*.whl dist/*.tar.gz publication-candidate/
       # Recheck after the build or any environment delay, immediately before
       # uploading. A stale revision or newer unfinished CI attempt must wait.
       - name: Recheck tested main before publishing
@@ -105,3 +112,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
           skip-existing: true
+      - name: Confirm the complete release is publicly available
+        if: steps.verify.outputs.ready == 'true'
+        run: python3 scripts/check_release_ci.py --verify-publication publication-candidate

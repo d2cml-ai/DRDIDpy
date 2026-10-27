@@ -263,6 +263,89 @@ class ExistingReleaseTests(unittest.TestCase):
             with patch.object(gate, "fetch_bytes", side_effect=fetch):
                 return gate.check_pypi_artifacts(directory)
 
+    def publication(self, states, delays=(5, 10, 20, 40, 60)):
+        candidate = {self.WHEEL: self.wheel(), self.SDIST: self.sdist()}
+        self.publication_attempts, self.publication_delays = 0, []
+        state, urls, content_by_url = {}, [], {}
+
+        def fetch(url, accept=None):
+            nonlocal state, urls, content_by_url
+            if url == "https://pypi.org/pypi/drdid/1.1.7/json":
+                state = states[min(self.publication_attempts, len(states) - 1)]
+                self.publication_attempts += 1
+                if state.get("version404"):
+                    raise HTTPError(url, 404, "Not visible", {}, None)
+                urls, content_by_url = [], {}
+                for name, content in state.get("files", candidate).items():
+                    file_url = "https://files.pythonhosted.org/packages/" + name
+                    content_by_url[file_url] = content
+                    urls.append(dict(filename=name, url=file_url,
+                                     digests={"sha256": hashlib.sha256(content).hexdigest()}))
+                return json.dumps({"info": {"version": "1.1.7"}, "urls": urls}).encode()
+            if url == "https://pypi.org/simple/drdid/":
+                self.assertEqual(accept, "application/vnd.pypi.simple.v1+json")
+                if state.get("simple404"):
+                    raise HTTPError(url, 404, "Not visible", {}, None)
+                files = [dict(filename=item["filename"], url=item["url"], hashes=item["digests"])
+                         for item in urls if item["filename"] not in state.get("simple_missing", [])]
+                if state.get("simple_bad_digest"):
+                    files[0]["hashes"] = {"sha256": "0" * 64}
+                if state.get("simple_yanked"):
+                    files[0]["yanked"] = True
+                if state.get("simple_bad_url"):
+                    files[0]["url"] = "https://attacker.invalid/file.whl"
+                return json.dumps({"name": "drdid", "files": files}).encode()
+            if url.rsplit("/", 1)[-1] in state.get("download404", []):
+                raise HTTPError(url, 404, "Not visible", {}, None)
+            return content_by_url[url]
+
+        with tempfile.TemporaryDirectory() as directory:
+            for name, content in candidate.items():
+                (Path(directory) / name).write_bytes(content)
+            with patch.object(gate, "fetch_bytes", side_effect=fetch), \
+                    patch.object(gate.time, "sleep", side_effect=self.publication_delays.append):
+                return gate.verify_publication(directory, delays=delays)
+
+    def test_post_upload_cached_404_must_become_a_complete_matching_release(self):
+        message = self.publication([{"version404": True}, {}])
+        self.assertIn("Confirmed both drdid 1.1.7 distributions", message)
+        self.assertEqual(self.publication_attempts, 2)
+        self.assertEqual(self.publication_delays, [5])
+
+    def test_post_upload_partial_artifacts_and_partial_pip_index_wait_for_both_files(self):
+        message = self.publication([{"files": {self.WHEEL: self.wheel()}},
+                                    {"simple_missing": [self.SDIST]}, {}])
+        self.assertIn("available from public PyPI", message)
+        self.assertEqual(self.publication_attempts, 3)
+        self.assertEqual(self.publication_delays, [5, 10])
+
+    def test_post_upload_missing_download_or_simple_index_can_propagate(self):
+        for missing in ({"download404": [self.SDIST]}, {"simple404": True}):
+            with self.subTest(missing=missing):
+                self.assertIn("Confirmed both", self.publication([missing, {}]))
+                self.assertEqual(self.publication_attempts, 2)
+
+    def test_post_upload_stale_404_cannot_hide_old_source_accepted_by_skip_existing(self):
+        with self.assertRaisesRegex(gate.GateError, "bump the version"):
+            self.publication([{"version404": True},
+                              {"files": {self.WHEEL: self.wheel(source=b"old broken behavior\n")}}])
+        self.assertEqual(self.publication_attempts, 2)
+        self.assertEqual(self.publication_delays, [5])
+
+    def test_post_upload_visible_simple_digest_url_or_yank_mismatch_fails_without_retry(self):
+        for state in ({"simple_bad_digest": True}, {"simple_yanked": True}, {"simple_bad_url": True}):
+            with self.subTest(state=state), self.assertRaises(gate.GateError):
+                self.publication([state, {}])
+            self.assertEqual(self.publication_attempts, 1)
+            self.assertEqual(self.publication_delays, [])
+
+    def test_post_upload_missing_release_or_partial_index_exhausts_a_bounded_retry_budget(self):
+        for pending in ({"version404": True}, {"files": {}}, {"simple_missing": [self.SDIST]}):
+            with self.subTest(pending=pending), self.assertRaisesRegex(gate.GateError, "after 6 attempts"):
+                self.publication([pending])
+            self.assertEqual(self.publication_attempts, 6)
+            self.assertEqual(self.publication_delays, [5, 10, 20, 40, 60])
+
     def test_existing_complete_or_partial_release_can_be_safely_retried(self):
         wheel, sdist = self.wheel(), self.sdist()
         for existing in ({self.WHEEL: wheel}, {self.SDIST: sdist}, {self.WHEEL: wheel, self.SDIST: sdist}):

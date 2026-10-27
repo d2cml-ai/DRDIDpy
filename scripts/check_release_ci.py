@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import tarfile
+import time
 from urllib.error import HTTPError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -27,6 +28,10 @@ REQUIRED = {
 
 class GateError(ValueError):
     pass
+
+
+class PublicationPending(GateError):
+    """A public index has not yet exposed all of a verified release."""
 
 
 def require(condition, message):
@@ -220,12 +225,15 @@ def artifact_identity(content, filename):
     return identity, files
 
 
-def fetch_bytes(url):
-    with urlopen(Request(url, headers={"User-Agent": "drdid-release-check"}), timeout=30) as response:
+def fetch_bytes(url, accept=None):
+    headers = {"User-Agent": "drdid-release-check"}
+    if accept:
+        headers["Accept"] = accept
+    with urlopen(Request(url, headers=headers), timeout=30) as response:
         return response.read()
 
 
-def check_pypi_artifacts(directory):
+def check_pypi_artifacts(directory, require_complete=False):
     paths = sorted(Path(directory).iterdir())
     require(len(paths) == 2 and sum(path.name.endswith(".whl") for path in paths) == 1
             and sum(path.name.endswith(".tar.gz") for path in paths) == 1,
@@ -239,14 +247,18 @@ def check_pypi_artifacts(directory):
         release = json.loads(fetch_bytes("https://pypi.org/pypi/drdid/%s/json" % version))
     except HTTPError as error:
         if error.code == 404:
+            if require_complete:
+                raise PublicationPending("The public PyPI version metadata is not visible yet")
             return "drdid %s is new on PyPI; publication may proceed." % version
         raise
     require(release.get("info", {}).get("version") == version, "Wrong PyPI release metadata")
     require(not release.get("info", {}).get("yanked"),
             "drdid %s is yanked on PyPI; bump the version" % version)
     published = release.get("urls", [])
+    if require_complete and not published:
+        raise PublicationPending("The public PyPI release files are not visible yet")
     require(published, "The existing PyPI release has no verifiable files")
-    seen = set()
+    seen, digests, unavailable = set(), {}, set()
     for artifact in published:
         require(not artifact.get("yanked"),
                 "drdid %s contains a yanked PyPI artifact; bump the version" % version)
@@ -256,21 +268,76 @@ def check_pypi_artifacts(directory):
         url = urlparse(artifact.get("url", ""))
         require(url.scheme == "https" and url.netloc == "files.pythonhosted.org",
                 "Unexpected PyPI artifact host")
-        content = fetch_bytes(artifact["url"])
+        try:
+            content = fetch_bytes(artifact["url"])
+        except HTTPError as error:
+            if require_complete and error.code == 404:
+                unavailable.add(name)
+                continue
+            raise
         require(hashlib.sha256(content).hexdigest() == artifact.get("digests", {}).get("sha256"),
                 "Published artifact does not match its PyPI digest")
         require(artifact_identity(content, name) == candidate_files[name],
                 "drdid %s already contains different source or metadata; bump the version" % version)
+        digests[name] = artifact["digests"]["sha256"]
+    if require_complete:
+        missing = (set(candidate_files) - seen) | unavailable
+        if missing:
+            raise PublicationPending("Public PyPI artifacts are not all visible: " + ", ".join(sorted(missing)))
+        try:
+            simple = json.loads(fetch_bytes("https://pypi.org/simple/drdid/",
+                                            accept="application/vnd.pypi.simple.v1+json"))
+        except HTTPError as error:
+            if error.code == 404:
+                raise PublicationPending("The public PyPI Simple index is not visible yet")
+            raise
+        require(simple.get("name") == "drdid", "Unexpected Simple index project")
+        visible = set()
+        for artifact in simple.get("files", []):
+            name = artifact.get("filename")
+            if name not in candidate_files:
+                continue
+            require(name not in visible, "Duplicate Simple index artifact")
+            visible.add(name)
+            require(not artifact.get("yanked"), "Simple index artifact is yanked; bump the version")
+            require(artifact.get("hashes", {}).get("sha256") == digests[name],
+                    "Simple index digest differs from the verified PyPI artifact")
+            require(artifact.get("url") == next(item["url"] for item in published if item["filename"] == name),
+                    "Simple index URL differs from the verified PyPI artifact")
+        missing = set(candidate_files) - visible
+        if missing:
+            raise PublicationPending("PyPI Simple index artifacts are not all visible: " + ", ".join(sorted(missing)))
+        return "Confirmed both drdid %s distributions match the tested build and are available from public PyPI." % version
     return "Verified %d existing drdid %s artifact(s); identical files may be skipped." % (len(seen), version)
+
+
+def verify_publication(directory, delays=(5, 10, 20, 40, 60)):
+    """Bound retries for propagation only; visible artifact mismatches fail now."""
+    for attempt in range(len(delays) + 1):
+        try:
+            return check_pypi_artifacts(directory, require_complete=True)
+        except PublicationPending as error:
+            if attempt == len(delays):
+                raise GateError("Publication could not be confirmed after %d attempts: %s. "
+                                "Retry the main workflow; do not assume the release is complete."
+                                % (attempt + 1, error)) from None
+            print("Waiting for public PyPI visibility: %s; retrying in %d seconds."
+                  % (error, delays[attempt]), flush=True)
+            time.sleep(delays[attempt])
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--artifacts", help="Compare built distributions with any existing PyPI release")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--artifacts", help="Compare built distributions with any existing PyPI release")
+    mode.add_argument("--verify-publication", metavar="DIRECTORY",
+                      help="Wait for complete matching public artifacts and pip index visibility")
     args = parser.parse_args(argv)
-    if args.artifacts:
+    if args.artifacts or args.verify_publication:
         try:
-            print(check_pypi_artifacts(args.artifacts))
+            message = (verify_publication(args.verify_publication) if args.verify_publication
+                       else check_pypi_artifacts(args.artifacts))
+            print(message)
         except GateError as error:
             raise SystemExit("Release blocked: " + str(error))
         return
