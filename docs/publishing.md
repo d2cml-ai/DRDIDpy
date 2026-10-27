@@ -56,6 +56,19 @@ instruction to bump the version. Matching existing files are skipped, allowing a
 partially completed upload to resume. Archive timestamps and documentation changes
 do not require a release.
 
+After upload, success also requires both public distribution files to match the
+tested build and both filenames, URLs and SHA256 digests to appear in PyPI's pip
+index. A cached 404 or temporarily missing file is retried up to six times, with
+5, 10, 20, 40 and 60 seconds between attempts and a 30-second timeout per request.
+Visible source, metadata, digest or yank mismatches fail immediately. Exhausting
+the visibility retries fails the run; a successful upload alone is not reported
+as a verified release. The complete publish job has a 20-minute timeout.
+
+PyPI uploads the wheel and source distribution separately. Verification cannot
+roll back a partial upload, prevent a concurrent installer from observing it, or
+replace an immutable file. A matching partial release can be retried; different
+published source requires a new version.
+
 Offline verification of the release gate runs with the ordinary package tests:
 
 ```sh
