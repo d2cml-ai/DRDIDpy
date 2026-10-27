@@ -50,7 +50,8 @@
       "tests/testthat/test-python-parity-source-probe.R"
     ],
     "tampered_input_metadata_test_exit": 1,
-    "all_expected_failures_observed": true
+    "all_expected_failures_observed": true,
+    "committed_native_source_change_detected": true
   },
   "checks": [
     "Python3.8 syntax",
@@ -64,5 +65,8 @@
     "Upstream required-check rules need repository-admin permissions unavailable to this contributor.",
     "No claim of support for improved/IPT, alternativeRC, TWFE, nonnormalizedIPW or refit bootstrap APIs.",
     "R-only pushes do not trigger this Python workflow; latest sources are checked on the next Python push/PR."
-  ]
+  ],
+  "source_tree_bound_files": 193,
+  "native_export_recompile_forced": true,
+  "provenance_hardening_preserved_all_80_numerical_payloads": true
 }

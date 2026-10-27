@@ -1,4 +1,4 @@
-"""Require review of changes to the R source and test trees, even if numbers pass."""
+"""Require review of every tracked R-repository change, even if numbers pass."""
 import hashlib
 import json
 from pathlib import Path
@@ -9,8 +9,10 @@ import sys
 def source_hashes(root):
     paths = subprocess.check_output(["git", "-C", str(root), "ls-files"],
                                     universal_newlines=True).splitlines()
+    # Bind the entire tracked tree, including native code, namespace declarations
+    # and build hooks. Documentation-only changes deliberately require review.
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
-            for name in paths if name == "DESCRIPTION" or name.startswith(("R/", "tests/"))}
+            for name in paths}
 
 
 def main():

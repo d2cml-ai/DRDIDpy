@@ -109,7 +109,7 @@ jobs:
         run: |
           DRDID_R_REVISION=$(git -C ../r-drdid rev-parse HEAD) \
             python -m pytest tests/test_r_parity.py -q --junitxml=../report/parity.xml
-      - name: Require review of upstream source or test changes
+      - name: Require review of changes to the complete upstream tree
         if: always()
         run: python python-drdid/scripts/check_r_source.py r-drdid
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

@@ -10,12 +10,13 @@ stopifnot(length(revision) == 1L, grepl("^[0-9a-f]{40}$", revision))
 if (length(git_output("status", "--porcelain", "--untracked-files=all"))) {
   stop("R checkout must be clean, including untracked files")
 }
-tracked <- git_output("ls-files")
-source_files <- tracked[tracked == "DESCRIPTION" | grepl("^(R|tests)/", tracked)]
+# Bind the complete tracked tree: native code, namespace declarations and build
+# hooks can affect behavior too. Documentation-only changes also require review.
+source_files <- git_output("ls-files")
 source_hashes <- as.list(setNames(vapply(file.path(source, source_files), function(path) {
   digest::digest(file = path, algo = "sha256")
 }, character(1L)), source_files))
-suppressPackageStartupMessages(pkgload::load_all(source, quiet = TRUE))
+suppressPackageStartupMessages(pkgload::load_all(source, quiet = TRUE, recompile = TRUE))
 if (length(args) == 3L) {
   stopifnot(args[[3L]] == "fastglm-wrapper")
   namespace <- asNamespace("DRDID")

@@ -28,10 +28,11 @@ comparison. Ordinary tests need no R installation.
 The independent contract tests include closed forms, empirical observation-weight
 derivatives with nuisance refitting, weight scaling, zero-mass rows and malformed
 inputs. They can expose mistakes even when two implementations share a bug.
-The exporter rejects dirty/untracked R checkouts and binds reference metadata to
-the selected commit, source hashes and exact input/exporter hashes.
+The exporter rejects dirty/untracked R checkouts, rebuilds native code and binds
+reference metadata to the selected commit, the complete tracked source tree and
+exact input/exporter hashes.
 The current-R CI job also regenerates references from the official R default
-branch. Changes to any tracked R source/test file or DESCRIPTION require review,
+branch. Changes to any tracked R repository file require review,
 even when this fixed numerical grid passes. A passing grid does not establish
 parity for methods outside the six listed above.
 
