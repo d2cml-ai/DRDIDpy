@@ -217,15 +217,19 @@ class ExistingReleaseTests(unittest.TestCase):
     WHEEL = "drdid-1.1.7-py3-none-any.whl"
     SDIST = "drdid-1.1.7.tar.gz"
 
-    def wheel(self, source=b"reviewed\n", requirements="numpy", name="drdid", version="1.1.7"):
+    def wheel(self, source=b"reviewed\n", requirements="numpy", name="drdid", version="1.1.7",
+              pure="true", tags=("py3-none-any",), generator="build-tool"):
         result = io.BytesIO()
         with zipfile.ZipFile(result, "w") as archive:
             archive.writestr("drdid/__init__.py", source)
             archive.writestr("drdid-1.1.7.dist-info/METADATA",
                              "Name: %s\nVersion: %s\nRequires-Dist: %s\n" % (name, version, requirements))
+            archive.writestr("drdid-1.1.7.dist-info/WHEEL",
+                             "Wheel-Version: 1.0\nGenerator: %s\nRoot-Is-Purelib: %s\n%s" %
+                             (generator, pure, "".join("Tag: " + tag + "\n" for tag in tags)))
         return result.getvalue()
 
-    def sdist(self, source=b"reviewed\n", setup=b"reviewed build\n", docs=b"original docs\n"):
+    def sdist(self, source=b"reviewed\n", setup=b"reviewed build\n", docs=b"original docs\n", extra_members=()):
         result = io.BytesIO()
         with tarfile.open(fileobj=result, mode="w:gz") as archive:
             files = {"drdid/__init__.py": source, "setup.py": setup, "README.md": docs,
@@ -234,6 +238,8 @@ class ExistingReleaseTests(unittest.TestCase):
                 member = tarfile.TarInfo("drdid-1.1.7/" + name)
                 member.size = len(content)
                 archive.addfile(member, io.BytesIO(content))
+            for member in extra_members:
+                archive.addfile(member, io.BytesIO(b"") if member.isfile() else None)
         return result.getvalue()
 
     def preflight(self, existing, candidate=None, mutation=None):
@@ -274,6 +280,48 @@ class ExistingReleaseTests(unittest.TestCase):
     def test_documentation_only_change_does_not_require_a_new_release(self):
         self.assertIn("identical files may be skipped",
                       self.preflight({self.SDIST: self.sdist(docs=b"older docs\n")}))
+
+    def test_source_archive_links_and_other_nonregular_members_are_rejected(self):
+        for member_type in (tarfile.SYMTYPE, tarfile.LNKTYPE, tarfile.FIFOTYPE,
+                            tarfile.CHRTYPE, tarfile.BLKTYPE):
+            for name in ("drdid-1.1.7/extra", "drdid-1.1.7/drdid/__init__.py"):
+                member = tarfile.TarInfo(name)
+                member.type = member_type
+                member.linkname = "drdid/__init__.py"
+                with self.subTest(member_type=member_type, name=name), self.assertRaises(gate.GateError):
+                    self.preflight({self.SDIST: self.sdist(extra_members=[member])})
+
+    def test_source_archive_all_paths_are_unique_below_one_safe_root(self):
+        bad_names = ("/drdid-1.1.7/absolute", "drdid-1.1.7/../escape", "drdid-1.1.7/drdid/../extra",
+                     "drdid-1.1.7/./extra", "drdid-1.1.7//extra", "drdid-1.1.7\\extra",
+                     "other-root/extra", "drdid-1.1.7/drdid/__init__.py")
+        for name in bad_names:
+            member = tarfile.TarInfo(name)
+            with self.subTest(name=name), self.assertRaises(gate.GateError):
+                self.preflight({self.SDIST: self.sdist(extra_members=[member])})
+        first = tarfile.TarInfo("drdid-1.1.7")
+        first.type = tarfile.DIRTYPE
+        duplicate = tarfile.TarInfo("drdid-1.1.7/")
+        duplicate.type = tarfile.DIRTYPE
+        with self.assertRaisesRegex(gate.GateError, "Duplicate"):
+            self.preflight({self.SDIST: self.sdist(extra_members=[first, duplicate])})
+        second_root = tarfile.TarInfo("other-root")
+        second_root.type = tarfile.DIRTYPE
+        with self.assertRaisesRegex(gate.GateError, "one source archive root"):
+            self.preflight({self.SDIST: self.sdist(extra_members=[second_root])})
+        self.assertIn("identical files", self.preflight({self.SDIST: self.sdist(extra_members=[first])}))
+
+    def test_wheel_installation_semantics_must_match_but_generator_can_change(self):
+        for wheel in (self.wheel(pure="false"), self.wheel(tags=("cp312-none-any",))):
+            with self.subTest(), self.assertRaisesRegex(gate.GateError, "bump the version"):
+                self.preflight({self.WHEEL: wheel})
+        self.assertIn("identical files", self.preflight({self.WHEEL: self.wheel(generator="other-tool")}))
+
+    def test_yanked_files_require_a_new_version_even_if_source_matches(self):
+        for mutation in (lambda release: release["urls"][0].update(yanked=True),
+                         lambda release: release["info"].update(yanked=True)):
+            with self.subTest(), self.assertRaisesRegex(gate.GateError, "yanked.*bump the version"):
+                self.preflight({self.WHEEL: self.wheel()}, mutation=mutation)
 
     def test_digest_url_release_version_and_unknown_artifacts_fail_closed(self):
         mutations = [lambda release: release["urls"][0]["digests"].update(sha256="0" * 64),

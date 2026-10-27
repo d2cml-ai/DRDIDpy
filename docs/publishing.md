@@ -51,9 +51,10 @@ for three days. A manual retry rebuilds them from that SHA. Publication is seria
 across all main revisions. Before skipping an existing file, the publisher checks
 its PyPI digest and compares its installable package source, build configuration
 (for source distributions), version, and dependency metadata with the new artifact.
-Different source under the same version fails with an instruction to bump the
-version. Matching existing files are skipped, allowing a partially completed upload
-to resume. Archive timestamps and documentation changes do not require a release.
+Different source or a yanked artifact under the same version fails with an
+instruction to bump the version. Matching existing files are skipped, allowing a
+partially completed upload to resume. Archive timestamps and documentation changes
+do not require a release.
 
 Offline verification of the release gate runs with the ordinary package tests:
 

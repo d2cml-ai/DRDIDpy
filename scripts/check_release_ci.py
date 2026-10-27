@@ -157,6 +157,7 @@ def release_ready(event_name, event, repository, repository_id, ref, sha, api, e
 
 def artifact_identity(content, filename):
     """Compare installable source and metadata, ignoring archive timestamps/docs."""
+    wheel_identity = {}
     if filename.endswith(".whl"):
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
             names = archive.namelist()
@@ -164,6 +165,15 @@ def artifact_identity(content, filename):
             metadata_names = [name for name in names if name.endswith(".dist-info/METADATA")]
             require(len(metadata_names) == 1, "Expected one wheel metadata file")
             metadata = archive.read(metadata_names[0])
+            wheel_names = [name for name in names if name.endswith(".dist-info/WHEEL")]
+            require(len(wheel_names) == 1
+                    and wheel_names[0].rsplit("/", 1)[0] == metadata_names[0].rsplit("/", 1)[0],
+                    "Expected one matching WHEEL metadata file")
+            wheel = email.parser.BytesParser().parsebytes(archive.read(wheel_names[0]))
+            wheel_identity = {"Wheel-" + name: sorted(wheel.get_all(name, []))
+                              for name in ("Root-Is-Purelib", "Tag")}
+            require(wheel_identity["Wheel-Root-Is-Purelib"] in (["true"], ["false"])
+                    and wheel_identity["Wheel-Tag"], "Missing wheel installation metadata")
             files = {name: archive.read(name) for name in names
                      if not name.endswith("/") and ".dist-info/" not in name}
             entrypoints = [name for name in names if name.endswith(".dist-info/entry_points.txt")]
@@ -172,14 +182,26 @@ def artifact_identity(content, filename):
                 files["entry_points.txt"] = archive.read(entrypoints[0])
     elif filename.endswith(".tar.gz"):
         with tarfile.open(fileobj=io.BytesIO(content), mode="r:gz") as archive:
-            members = [member for member in archive.getmembers() if member.isfile()]
-            names = [member.name for member in members]
+            members = archive.getmembers()
+            names, roots = [], set()
+            # Validate every member before filtering or reading. Links, devices,
+            # duplicate paths and traversal entries must never be silently ignored.
+            for member in members:
+                require(member.isfile() or member.isdir(), "Unsupported source archive member type")
+                name = member.name[:-1] if member.isdir() and member.name.endswith("/") else member.name
+                parts = name.split("/")
+                require("\\" not in name and all(part not in ("", ".", "..") for part in parts),
+                        "Unsafe source archive path")
+                require(member.isdir() or len(parts) > 1, "Source files must be below the archive root")
+                names.append(name)
+                roots.add(parts[0])
             require(len(names) == len(set(names)), "Duplicate source archive entries")
-            roots = {name.split("/", 1)[0] for name in names}
             require(len(roots) == 1, "Expected one source archive root")
             files = {}
             metadata = None
             for member in members:
+                if member.isdir():
+                    continue
                 name = member.name.split("/", 1)[-1]
                 if name == "PKG-INFO":
                     metadata = archive.extractfile(member).read()
@@ -192,6 +214,7 @@ def artifact_identity(content, filename):
     parsed = email.parser.BytesParser().parsebytes(metadata)
     identity = {name: sorted(parsed.get_all(name, [])) for name in
                 ("Name", "Version", "Requires-Python", "Requires-Dist", "Provides-Extra")}
+    identity.update(wheel_identity)
     require(identity["Name"] == ["drdid"] and len(identity["Version"]) == 1,
             "Unexpected package identity")
     return identity, files
@@ -219,10 +242,14 @@ def check_pypi_artifacts(directory):
             return "drdid %s is new on PyPI; publication may proceed." % version
         raise
     require(release.get("info", {}).get("version") == version, "Wrong PyPI release metadata")
+    require(not release.get("info", {}).get("yanked"),
+            "drdid %s is yanked on PyPI; bump the version" % version)
     published = release.get("urls", [])
     require(published, "The existing PyPI release has no verifiable files")
     seen = set()
     for artifact in published:
+        require(not artifact.get("yanked"),
+                "drdid %s contains a yanked PyPI artifact; bump the version" % version)
         name = artifact.get("filename")
         require(name in candidate_files and name not in seen, "Unexpected existing PyPI artifact")
         seen.add(name)
