@@ -35,8 +35,13 @@ def main():
         standalone = getattr(module, name)(*args, covariates=design, i_weights=weights)
         provider = select_estimators(method)[0 if panel else 1]
         integrated = provider(*args, covariates=design, i_weights=weights)
-        np.testing.assert_allclose(standalone[0]/scale, integrated[0]/scale, rtol=1e-6, atol=1e-7)
-        np.testing.assert_allclose(standalone[1]/scale, integrated[1]/scale, rtol=1e-6, atol=1e-7)
+        # Keep the strict raw-output contract as well as the predeclared unit
+        # conversion that makes the small-outcome cases informative.
+        for direct, dispatched in zip(standalone, integrated):
+            np.testing.assert_allclose(direct, dispatched, rtol=1e-6, atol=1e-7)
+            np.testing.assert_allclose(np.asarray(direct)/scale,
+                                       np.asarray(dispatched)/scale,
+                                       rtol=1e-6, atol=1e-7)
     print("%d common-input CSDID dispatch comparisons passed" % len(cases))
 
 
