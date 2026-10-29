@@ -1,0 +1,9 @@
+{
+  "baseline_revision": "eaac3b49cd225d0d7706c633858555a5f204e21e",
+  "added_workflows": {
+    ".github/workflows/python-downstream.yml": {
+      "sha256": "f69bd7179c6862ae8e6481c0bea01e0a7108ce62405af4679631c73c72030c86",
+      "mode": "100644"
+    }
+  }
+}
