@@ -2,13 +2,19 @@ name: Estimator tests
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Check current R DRDID and CSDID on the first of each month (UTC).
+    - cron: '43 9 1 * *'
 
 permissions:
   contents: read
 
 concurrency:
-  group: estimator-tests-${{ github.workflow }}-${{ github.ref }}
+  group: estimator-tests-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

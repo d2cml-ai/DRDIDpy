@@ -81,7 +81,7 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertFalse(self.ready(event_name="workflow_dispatch", event=manual, sha=SHA))
 
     def test_unsupported_events_and_malformed_or_changed_release_sha_are_blocked(self):
-        for event_name in ("push", "pull_request", "repository_dispatch"):
+        for event_name in ("push", "pull_request", "repository_dispatch", "schedule"):
             with self.subTest(event_name=event_name), self.assertRaises(gate.GateError):
                 self.ready(event_name=event_name)
         for sha in ("main", "abc123", None, "g" * 40):
@@ -93,7 +93,8 @@ class ReleaseGateTests(unittest.TestCase):
             self.ready(expected_sha=OTHER_SHA)
 
     def test_untrusted_trigger_or_live_workflow_never_uses_successful_checks(self):
-        mutations = [("event", "pull_request"), ("head_branch", "feature"),
+        mutations = [("event", "pull_request"), ("event", "schedule"),
+                     ("event", "workflow_dispatch"), ("head_branch", "feature"),
                      ("path", ".github/workflows/other.yml"), ("name", "Other tests"),
                      ("repository", {"full_name": REPO, "id": 999}),
                      ("head_repository", {"full_name": "fork/DRDIDpy", "id": 9}),
