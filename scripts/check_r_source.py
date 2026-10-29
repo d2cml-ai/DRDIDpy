@@ -16,8 +16,10 @@ def source_hashes(root):
             for name in paths}
 
 
-def source_modes(root):
-    entries = subprocess.check_output(["git", "-C", str(root), "ls-files", "--stage", "-z"],
+def source_modes(root, revision=None):
+    command = (["ls-tree", "-r", "-z", revision] if revision
+               else ["ls-files", "--stage", "-z"])
+    entries = subprocess.check_output(["git", "-C", str(root)] + command,
                                       universal_newlines=True).split("\0")
     return {entry.split("\t", 1)[1]: entry.split(" ", 1)[0]
             for entry in entries if entry}
@@ -48,11 +50,16 @@ def reviewed_automation_changes(manifest, new, modes, review):
                   and modes.get(path) == identity["mode"])
 
 
-def compare_sources(manifest, new, modes, review=None):
+def compare_sources(manifest, new, modes, review=None, baseline_modes=None):
     old = manifest["r_source_hashes"]
-    changed = sorted(name for name in set(old) | set(new) if old.get(name) != new.get(name))
+    mode_changes = (sorted(name for name in set(baseline_modes) | set(modes)
+                           if baseline_modes.get(name) != modes.get(name))
+                    if baseline_modes is not None else [])
+    changed = sorted({name for name in set(old) | set(new) if old.get(name) != new.get(name)}
+                     | set(mode_changes))
     report = {"reviewed_revision": manifest["r_revision"],
-              "changed_source_or_test_files": changed}
+              "changed_source_or_test_files": changed,
+              "changed_mode_files": mode_changes}
     try:
         reviewed = reviewed_automation_changes(manifest, new, modes, review)
     except ValueError as error:
@@ -79,7 +86,8 @@ def main():
         review = None
     except json.JSONDecodeError:
         review = {}  # Invalid records cannot accept any source changes.
-    report, status = compare_sources(manifest, source_hashes(root), source_modes(root), review)
+    report, status = compare_sources(manifest, source_hashes(root), source_modes(root), review,
+                                     source_modes(root, manifest["r_revision"]))
     revision = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"],
                                        universal_newlines=True).strip()
     report["selected_revision"] = revision

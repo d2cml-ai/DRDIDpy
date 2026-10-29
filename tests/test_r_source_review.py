@@ -81,6 +81,17 @@ class AutomationReviewTests(unittest.TestCase):
         self.assertEqual(status, 3)
         self.assertEqual(report["reviewed_automation_files"], [])
 
+    def test_baseline_mode_only_change_still_requires_review(self):
+        baseline_modes = {name: "100644" for name in self.manifest["r_source_hashes"]}
+        modes = dict(baseline_modes, **self.modes)
+        modes["R/kernel.R"] = "100755"
+        report, status = gate.compare_sources(self.manifest, self.new, modes,
+                                              self.review, baseline_modes)
+        self.assertEqual(status, 3)
+        self.assertIn("R/kernel.R", report["changed_mode_files"])
+        self.assertEqual(report["reviewed_automation_files"], [PATH])
+        self.assertEqual(report["unreviewed_source_or_test_files"], ["R/kernel.R"])
+
     def test_malformed_or_overbroad_records_fail_closed(self):
         variants = [[], {}, dict(self.review, unexpected=True)]
         for path in ("R/kernel.R", ".github/workflows/../kernel.yml", "/tmp/workflow.yml"):
